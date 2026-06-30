@@ -27,19 +27,19 @@ const NAV_ITEMS: NavItem[] = [
     label: "Fleet",
     href: "/fleet",
     icon: Truck,
-    roles: ["admin", "manager"],
+    roles: ["admin", "user"],
   },
   {
     label: "Field",
     href: "/field",
     icon: Wrench,
-    roles: ["admin", "manager", "operative"],
+    roles: ["admin", "user", "operative"],
   },
   {
     label: "Contractors",
     href: "/contractors",
     icon: HardHat,
-    roles: ["admin", "manager"],
+    roles: ["admin", "user"],
   },
 ];
 

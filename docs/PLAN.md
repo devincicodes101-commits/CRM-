@@ -48,15 +48,16 @@ receipts, feedbacks, integration_connections, website_domains, invited_users, si
 staff_messages, company_settings
 
 **Checklist:**
-- [ ] Read SPEC §3 + §4 (grep by entity name, not full read)
-- [ ] Batch A: write SQL migration + Zod schema for each entity
-- [ ] Batch B: write SQL migration + Zod schema for each entity
-- [ ] Batch C: write SQL migration + Zod schema for each entity
-- [ ] RLS policies for all tables (encode rules from SPEC §7.2)
-- [ ] `src/lib/schemas/index.ts` barrel export
-- [ ] Delete `src/models/` (Mongoose reference no longer needed)
-- [ ] Run `npx supabase db push` or document migration order
-- [ ] Commit: `feat: full data model — Supabase migrations + Zod schemas`
+- [x] No `docs/SPEC.md` yet — used `src/models/_mongoose-reference/` (prior iteration's Mongoose schemas) as the entity source of truth instead
+- [x] 12 SQL migrations in `supabase/migrations/`: enums, functions/triggers, users, core CRM, quotes/invoices, jobs, fleet/attendance, contractors, job-related, comms, admin, RLS
+- [x] Zod schemas for all 36 entities in `src/lib/schemas/` (common, users, customers, leads, services, quotes, invoices, jobs, job-related, contractors, fleet, comms, admin)
+- [x] RLS policies for all tables — role-based (admin/user/operative/sales/telesales/contractor), single-tenant (no company_id needed)
+- [x] `src/lib/schemas/index.ts` barrel export
+- [x] Deleted `src/models/` (Mongoose reference no longer needed)
+- [ ] Run `npx supabase db push` against a real Supabase project (not yet provisioned — user needs to create one and add `.env.local`)
+- [x] Commit: `feat: full data model — Supabase migrations + Zod schemas`
+
+**Note:** When `docs/SPEC.md` is eventually provided, diff it against the migrations/schemas here — they were built from the prior MongoDB iteration's models, which may have drifted from the canonical Base44 spec.
 
 ---
 

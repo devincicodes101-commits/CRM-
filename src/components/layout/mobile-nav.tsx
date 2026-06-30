@@ -31,18 +31,18 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Jobs", href: "/jobs", icon: Briefcase },
   { label: "Quotes", href: "/quotes", icon: FileText },
   { label: "Invoices", href: "/invoices", icon: Receipt },
-  { label: "Fleet", href: "/fleet", icon: Truck, roles: ["admin", "manager"] },
+  { label: "Fleet", href: "/fleet", icon: Truck, roles: ["admin", "user"] },
   {
     label: "Field",
     href: "/field",
     icon: Wrench,
-    roles: ["admin", "manager", "operative"],
+    roles: ["admin", "user", "operative"],
   },
   {
     label: "Contractors",
     href: "/contractors",
     icon: HardHat,
-    roles: ["admin", "manager"],
+    roles: ["admin", "user"],
   },
 ];
 
