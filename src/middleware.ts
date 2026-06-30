@@ -55,6 +55,36 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  if (user && !isPublic) {
+    const { data: profile } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    const role = profile?.role;
+
+    if (role === "contractor" && pathname !== "/onboarding") {
+      const { data: contractor } = await supabase
+        .from("contractors")
+        .select("registration_completed")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!contractor?.registration_completed) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/onboarding";
+        return NextResponse.redirect(url);
+      }
+    }
+
+    if (role === "operative" && !pathname.startsWith("/field")) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/field";
+      return NextResponse.redirect(url);
+    }
+  }
+
   return supabaseResponse;
 }
 
