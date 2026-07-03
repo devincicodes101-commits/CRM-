@@ -16,6 +16,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AsyncButton } from "@/components/ui/async-button";
 import { updateJobStatus, approveReschedule, rejectReschedule } from "@/app/(protected)/jobs/actions";
+import { createInvoiceFromJob } from "@/app/(protected)/invoices/actions";
 import type { Job } from "@/lib/schemas/jobs";
 import type { RescheduleRequest } from "@/lib/schemas/job-related";
 
@@ -115,13 +116,21 @@ export default async function JobDetailPage({
             </AsyncButton>
           )}
           {job.status === "completed" && (
-            <AsyncButton
-              action={() => updateJobStatus(id, "invoiced")}
-              variant="secondary"
-              size="sm"
-            >
-              <Receipt className="size-4" /> Mark Invoiced
-            </AsyncButton>
+            <>
+              <AsyncButton
+                action={() => createInvoiceFromJob(id)}
+                size="sm"
+              >
+                <Receipt className="size-4" /> Create Invoice
+              </AsyncButton>
+              <AsyncButton
+                action={() => updateJobStatus(id, "invoiced")}
+                variant="secondary"
+                size="sm"
+              >
+                Mark Invoiced
+              </AsyncButton>
+            </>
           )}
           {!["cancelled", "invoiced", "completed"].includes(job.status) && (
             <AsyncButton
