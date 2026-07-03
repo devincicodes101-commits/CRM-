@@ -12,6 +12,7 @@ import {
   Truck,
   HardHat,
   Wrench,
+  Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { NavItem, UserRole } from "@/types";
@@ -20,6 +21,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Customers", href: "/customers", icon: Users },
   { label: "Leads", href: "/leads", icon: TrendingUp },
+  { label: "Services", href: "/services", icon: Layers, roles: ["admin", "user"] },
   { label: "Jobs", href: "/jobs", icon: Briefcase },
   { label: "Quotes", href: "/quotes", icon: FileText },
   { label: "Invoices", href: "/invoices", icon: Receipt },
