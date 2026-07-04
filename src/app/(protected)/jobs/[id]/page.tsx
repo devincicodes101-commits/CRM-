@@ -17,8 +17,10 @@ import { Badge } from "@/components/ui/badge";
 import { AsyncButton } from "@/components/ui/async-button";
 import { updateJobStatus, approveReschedule, rejectReschedule } from "@/app/(protected)/jobs/actions";
 import { createInvoiceFromJob } from "@/app/(protected)/invoices/actions";
+import { BidPanel } from "@/components/contractors/bid-panel";
 import type { Job } from "@/lib/schemas/jobs";
 import type { RescheduleRequest } from "@/lib/schemas/job-related";
+import type { JobBid, Subcontractor } from "@/lib/schemas/contractors";
 
 const STATUS_VARIANT = {
   scheduled: "secondary",
@@ -59,6 +61,11 @@ export default async function JobDetailPage({
     .eq("job_id", id)
     .order("created_date", { ascending: false })
     .returns<RescheduleRequest[]>();
+
+  const [{ data: bids }, { data: subcontractors }] = await Promise.all([
+    supabase.from("job_bids").select("*").eq("job_id", id).order("created_date", { ascending: false }).returns<JobBid[]>(),
+    supabase.from("subcontractors").select("id, name, company_name").eq("status", "active").order("name").returns<Subcontractor[]>(),
+  ]);
 
   const pending = rescheduleRequests?.filter((r) => r.status === "pending") ?? [];
 
@@ -343,6 +350,19 @@ export default async function JobDetailPage({
           <p className="text-sm whitespace-pre-wrap">{job.notes}</p>
         </div>
       )}
+
+      {/* Bids */}
+      <div className="rounded-xl border bg-card p-4 space-y-3">
+        <h2 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+          Contractor Bids {bids && bids.length > 0 ? `(${bids.length})` : ""}
+        </h2>
+        <BidPanel
+          jobId={id}
+          bids={bids ?? []}
+          subcontractors={subcontractors ?? []}
+          canManage={true}
+        />
+      </div>
 
       {/* Past reschedule requests */}
       {rescheduleRequests && rescheduleRequests.filter((r) => r.status !== "pending").length > 0 && (
