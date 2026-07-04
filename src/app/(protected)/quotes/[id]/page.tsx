@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { sendQuote, updateQuoteStatus } from "@/app/(protected)/quotes/actions";
+import { CopyLinkButton } from "@/components/shared/copy-link-button";
 import type { Quote } from "@/lib/schemas/quotes";
 
 const STATUS_VARIANT = {
@@ -86,6 +87,14 @@ export default async function QuoteDetailPage({
                 <XCircle className="size-4" /> Mark Declined
               </AsyncButton>
             </>
+          )}
+          {quote.status === "sent" && (
+            <CopyLinkButton
+              url={`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/quote/${quote.quote_number}`}
+              label="Copy Quote Link"
+              variant="outline"
+              size="sm"
+            />
           )}
           <Link
             href={`/quotes/${id}/edit`}

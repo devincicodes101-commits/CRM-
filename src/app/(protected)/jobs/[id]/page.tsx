@@ -18,6 +18,7 @@ import { AsyncButton } from "@/components/ui/async-button";
 import { updateJobStatus, approveReschedule, rejectReschedule } from "@/app/(protected)/jobs/actions";
 import { createInvoiceFromJob } from "@/app/(protected)/invoices/actions";
 import { BidPanel } from "@/components/contractors/bid-panel";
+import { CopyLinkButton } from "@/components/shared/copy-link-button";
 import type { Job } from "@/lib/schemas/jobs";
 import type { RescheduleRequest } from "@/lib/schemas/job-related";
 import type { JobBid, Subcontractor } from "@/lib/schemas/contractors";
@@ -156,6 +157,22 @@ export default async function JobDetailPage({
             >
               <XCircle className="size-4" /> Cancel
             </AsyncButton>
+          )}
+          {job.status === "completed" && job.message_token && (
+            <CopyLinkButton
+              url={`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/completion/${job.message_token}`}
+              label="Sign-off Link"
+              variant="outline"
+              size="sm"
+            />
+          )}
+          {job.message_token && (
+            <CopyLinkButton
+              url={`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/feedback/${job.message_token}`}
+              label="Feedback Link"
+              variant="outline"
+              size="sm"
+            />
           )}
           <Link
             href={`/jobs/${id}/edit`}
