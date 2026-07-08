@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import { Link2, Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import type { ButtonProps } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import type { VariantProps } from "class-variance-authority";
 
-type Props = { url: string; label?: string } & Omit<ButtonProps, "onClick">;
+type Props = { url: string; label?: string } & Omit<
+  React.ComponentPropsWithoutRef<"button"> & VariantProps<typeof buttonVariants>,
+  "onClick"
+>;
 
 export function CopyLinkButton({ url, label = "Copy Link", ...props }: Props) {
   const [copied, setCopied] = useState(false);

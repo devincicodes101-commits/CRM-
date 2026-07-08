@@ -13,6 +13,9 @@ import {
   HardHat,
   Wrench,
   Layers,
+  MessageSquare,
+  BarChart3,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { NavItem, UserRole } from "@/types";
@@ -42,6 +45,24 @@ const NAV_ITEMS: NavItem[] = [
     href: "/contractors",
     icon: HardHat,
     roles: ["admin", "user"],
+  },
+  {
+    label: "Comms",
+    href: "/comms",
+    icon: MessageSquare,
+    roles: ["admin", "user"],
+  },
+  {
+    label: "Analytics",
+    href: "/analytics",
+    icon: BarChart3,
+    roles: ["admin"],
+  },
+  {
+    label: "Settings",
+    href: "/settings",
+    icon: Settings,
+    roles: ["admin"],
   },
 ];
 
