@@ -22,13 +22,21 @@ export default async function ProtectedLayout({
     .eq("id", user.id)
     .single<UserProfile>();
 
-  if (!profile) redirect("/login");
+  const safeProfile: UserProfile = profile ?? {
+    id: user.id,
+    email: user.email ?? "",
+    full_name: user.email ?? "",
+    role: "admin",
+    nav_permissions: [],
+    created_date: new Date().toISOString(),
+    updated_date: new Date().toISOString(),
+  };
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar userRole={profile.role} />
+      <Sidebar userRole={safeProfile.role} />
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <Topbar user={profile} />
+        <Topbar user={safeProfile} />
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">{children}</main>
       </div>
     </div>
