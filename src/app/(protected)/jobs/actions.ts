@@ -20,6 +20,28 @@ export async function createJob(values: unknown): Promise<{ error: string } | vo
     .single();
   if (error) return { error: error.message };
 
+  // fire-and-forget sync to field app
+  const fieldAppUrl = process.env.FIELD_APP_URL;
+  const syncSecret = process.env.CRM_SYNC_SECRET;
+  if (fieldAppUrl && syncSecret) {
+    fetch(`${fieldAppUrl}/api/crm-sync`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${syncSecret}`,
+      },
+      body: JSON.stringify({
+        external_ref: data.id,
+        title: parsed.data.title,
+        address: parsed.data.address ?? "",
+        client_name: parsed.data.customer_name ?? "",
+        client_email: parsed.data.customer_email ?? undefined,
+        total_value: parsed.data.total_value,
+        scheduled_date: parsed.data.start_date,
+      }),
+    }).catch(() => {/* non-critical */});
+  }
+
   revalidatePath("/jobs");
   redirect(`/jobs/${data.id}`);
 }

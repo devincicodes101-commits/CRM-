@@ -16,6 +16,9 @@ import {
   MessageSquare,
   BarChart3,
   Settings,
+  Map,
+  Trophy,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { NavItem, UserRole } from "@/types";
@@ -53,9 +56,27 @@ const NAV_ITEMS: NavItem[] = [
     roles: ["admin", "user"],
   },
   {
+    label: "Route Planning",
+    href: "/route-planning",
+    icon: Map,
+    roles: ["admin", "user"],
+  },
+  {
+    label: "Performance",
+    href: "/performance",
+    icon: Trophy,
+    roles: ["admin", "user"],
+  },
+  {
     label: "Analytics",
     href: "/analytics",
     icon: BarChart3,
+    roles: ["admin"],
+  },
+  {
+    label: "Admin",
+    href: "/admin",
+    icon: ShieldCheck,
     roles: ["admin"],
   },
   {
