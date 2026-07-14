@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { quoteInsertSchema, quoteUpdateSchema } from "@/lib/schemas/quotes";
+import { onQuoteCreated } from "@/lib/automations/triggers";
+import { sendEmail } from "@/lib/email";
 
 export async function createQuote(values: unknown): Promise<{ error: string } | void> {
   const parsed = quoteInsertSchema.safeParse(values);
@@ -19,6 +21,8 @@ export async function createQuote(values: unknown): Promise<{ error: string } | 
     .select("id")
     .single();
   if (error) return { error: error.message };
+
+  onQuoteCreated({ ...parsed.data, id: data.id, created_by_id: user.id });
 
   revalidatePath("/quotes");
   redirect(`/quotes/${data.id}`);
@@ -39,11 +43,37 @@ export async function updateQuote(id: string, values: unknown): Promise<{ error:
 
 export async function sendQuote(id: string): Promise<{ error: string } | void> {
   const supabase = await createClient();
+
+  const { data: quote, error: fetchErr } = await supabase
+    .from("quotes")
+    .select("public_token, customer_email, customer_name, quote_number")
+    .eq("id", id)
+    .single<{
+      public_token: string;
+      customer_email: string | null;
+      customer_name: string | null;
+      quote_number: string;
+    }>();
+  if (fetchErr || !quote) return { error: fetchErr?.message ?? "Quote not found" };
+
   const { error } = await supabase
     .from("quotes")
     .update({ status: "sent", sent_date: new Date().toISOString() })
     .eq("id", id);
   if (error) return { error: error.message };
+
+  // Email the customer the public (token-guarded) quote link.
+  if (quote.customer_email) {
+    const base = process.env.NEXT_PUBLIC_BASE_URL ?? "";
+    const link = `${base}/quote/${quote.public_token}`;
+    await sendEmail({
+      to: quote.customer_email,
+      subject: `Your quote ${quote.quote_number}`,
+      html: `<p>Hi ${quote.customer_name ?? "there"},</p>
+        <p>Your quote <strong>${quote.quote_number}</strong> is ready. View and respond here:</p>
+        <p><a href="${link}">${link}</a></p>`,
+    });
+  }
 
   revalidatePath("/quotes");
   revalidatePath(`/quotes/${id}`);

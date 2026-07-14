@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { leadInsertSchema, leadUpdateSchema } from "@/lib/schemas/leads";
+import { onLeadCreated } from "@/lib/automations/triggers";
 
 export async function createLead(values: unknown): Promise<{ error: string } | void> {
   const parsed = leadInsertSchema.safeParse(values);
@@ -19,6 +20,8 @@ export async function createLead(values: unknown): Promise<{ error: string } | v
     .select("id")
     .single();
   if (error) return { error: error.message };
+
+  onLeadCreated({ ...parsed.data, id: data.id });
 
   revalidatePath("/leads");
   redirect(`/leads/${data.id}`);
