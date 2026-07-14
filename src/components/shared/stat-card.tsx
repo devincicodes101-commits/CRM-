@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -9,16 +9,18 @@ export type StatCardProps = {
   title: string;
   value: string | number;
   subtitle?: string;
-  icon?: LucideIcon;
-  /** Tailwind text color class for the icon, e.g. "text-emerald-600". */
-  iconColor?: string;
+  /**
+   * A RENDERED icon element, e.g. `icon={<Truck className="h-4 w-4 text-purple-600" />}`.
+   * Must be an element, not a component reference — Server Components can't pass a
+   * function/component across the boundary to this Client Component.
+   */
+  icon?: ReactNode;
   /** Tailwind bg color class for the icon chip, e.g. "bg-emerald-50 dark:bg-emerald-900/20". */
   iconBg?: string;
   /** Tailwind text color class for the value. */
   valueColor?: string;
   trend?: { value: number; label?: string };
   delay?: number;
-  href?: string;
   className?: string;
 };
 
@@ -26,8 +28,7 @@ export function StatCard({
   title,
   value,
   subtitle,
-  icon: Icon,
-  iconColor = "text-primary",
+  icon,
   iconBg = "bg-primary/10",
   valueColor,
   trend,
@@ -45,11 +46,7 @@ export function StatCard({
     >
       <div className="flex items-start justify-between">
         <p className="text-sm text-muted-foreground font-medium">{title}</p>
-        {Icon && (
-          <span className={cn("p-2 rounded-md", iconBg)}>
-            <Icon className={cn("h-4 w-4", iconColor)} />
-          </span>
-        )}
+        {icon && <span className={cn("p-2 rounded-md", iconBg)}>{icon}</span>}
       </div>
       <p className={cn("mt-3 text-2xl font-bold tracking-tight", valueColor)}>{value}</p>
       <div className="mt-1 flex items-center gap-2">

@@ -210,16 +210,14 @@ export default async function DashboardPage() {
         <StatCard
           title="Quotes Accepted"
           value={gbp(acceptedValue)}
-          icon={Handshake}
-          iconColor="text-lime-600"
+          icon={<Handshake className="h-4 w-4 text-lime-600" />}
           iconBg="bg-lime-50 dark:bg-lime-900/20"
           delay={0}
         />
         <StatCard
           title="Quotes Sent"
           value={gbp(sentValue)}
-          icon={Handshake}
-          iconColor="text-amber-600"
+          icon={<Handshake className="h-4 w-4 text-amber-600" />}
           iconBg="bg-amber-50 dark:bg-amber-900/20"
           delay={0.05}
         />
@@ -236,17 +234,22 @@ export default async function DashboardPage() {
 
       {/* Section 2 — KPI cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
-        <StatCard title="Total Revenue" value={gbp(totalRevenue)} icon={PoundSterling}
-          iconColor="text-emerald-600" iconBg="bg-emerald-50 dark:bg-emerald-900/20" delay={0} />
-        <StatCard title="Active Jobs" value={activeJobs.length} icon={Briefcase}
-          iconColor="text-primary" iconBg="bg-primary/10" delay={0.05} />
-        <StatCard title="Overdue Invoices" value={overdueInvoices} icon={AlertCircle}
-          iconColor="text-red-600" iconBg="bg-red-50 dark:bg-red-900/20" delay={0.1} />
-        <StatCard title="Fleet Active" value={`${activeVehicles}/${d.vehicles.length}`} icon={Truck}
-          iconColor="text-purple-600" iconBg="bg-purple-50 dark:bg-purple-900/20" delay={0.15} />
+        <StatCard title="Total Revenue" value={gbp(totalRevenue)}
+          icon={<PoundSterling className="h-4 w-4 text-emerald-600" />}
+          iconBg="bg-emerald-50 dark:bg-emerald-900/20" delay={0} />
+        <StatCard title="Active Jobs" value={activeJobs.length}
+          icon={<Briefcase className="h-4 w-4 text-primary" />}
+          iconBg="bg-primary/10" delay={0.05} />
+        <StatCard title="Overdue Invoices" value={overdueInvoices}
+          icon={<AlertCircle className="h-4 w-4 text-red-600" />}
+          iconBg="bg-red-50 dark:bg-red-900/20" delay={0.1} />
+        <StatCard title="Fleet Active" value={`${activeVehicles}/${d.vehicles.length}`}
+          icon={<Truck className="h-4 w-4 text-purple-600" />}
+          iconBg="bg-purple-50 dark:bg-purple-900/20" delay={0.15} />
         <StatCard title="Cancelled Jobs" value={gbp(cancelledValue)}
-          subtitle={`${cancelledJobs.length} cancelled`} icon={XCircle}
-          iconColor="text-red-600" iconBg="bg-red-50 dark:bg-red-900/20" delay={0.2} />
+          subtitle={`${cancelledJobs.length} cancelled`}
+          icon={<XCircle className="h-4 w-4 text-red-600" />}
+          iconBg="bg-red-50 dark:bg-red-900/20" delay={0.2} />
       </div>
 
       {/* Sections 3 & 4 — Messages + Reschedules */}

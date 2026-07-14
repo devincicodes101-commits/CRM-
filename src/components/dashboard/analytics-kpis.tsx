@@ -136,8 +136,7 @@ export function AnalyticsKPIs({
           title="Lead Conversion"
           value={`${conversion.toFixed(1)}%`}
           subtitle={`${gbp(pipelineValue)} in pipeline`}
-          icon={Target}
-          iconColor="text-blue-600"
+          icon={<Target className="h-4 w-4 text-blue-600" />}
           iconBg="bg-blue-50 dark:bg-blue-900/20"
           delay={0}
         />
@@ -145,8 +144,7 @@ export function AnalyticsKPIs({
           title="Cost per Lead"
           value={costPerLead === null ? "—" : gbp(costPerLead)}
           subtitle={costPerLead === null ? "Set marketing spend" : `${totalLeads} leads`}
-          icon={Coins}
-          iconColor="text-amber-600"
+          icon={<Coins className="h-4 w-4 text-amber-600" />}
           iconBg="bg-amber-50 dark:bg-amber-900/20"
           delay={0.05}
         />
@@ -154,8 +152,7 @@ export function AnalyticsKPIs({
           title="Revenue per Job"
           value={gbp(revenuePerJob)}
           subtitle={`${completedJobs.length} completed`}
-          icon={PoundSterling}
-          iconColor="text-emerald-600"
+          icon={<PoundSterling className="h-4 w-4 text-emerald-600" />}
           iconBg="bg-emerald-50 dark:bg-emerald-900/20"
           delay={0.1}
         />
@@ -163,8 +160,7 @@ export function AnalyticsKPIs({
           title="Fleet Utilisation"
           value={`${fleetUtil.toFixed(0)}%`}
           subtitle={`${activeVehicles}/${vehicles.length} active`}
-          icon={Truck}
-          iconColor="text-purple-600"
+          icon={<Truck className="h-4 w-4 text-purple-600" />}
           iconBg="bg-purple-50 dark:bg-purple-900/20"
           delay={0.15}
         />
@@ -172,8 +168,7 @@ export function AnalyticsKPIs({
           title="Team Utilisation"
           value={`${teamUtil.toFixed(0)}%`}
           subtitle={`${assignedUsers}/${userCount} assigned`}
-          icon={Users}
-          iconColor="text-cyan-600"
+          icon={<Users className="h-4 w-4 text-cyan-600" />}
           iconBg="bg-cyan-50 dark:bg-cyan-900/20"
           delay={0.2}
         />
@@ -181,8 +176,11 @@ export function AnalyticsKPIs({
           title="Job Profitability"
           value={gbp(totalProfit)}
           subtitle={`${avgMargin.toFixed(0)}% avg margin`}
-          icon={LineChartIcon}
-          iconColor={totalProfit >= 0 ? "text-emerald-600" : "text-red-600"}
+          icon={
+            <LineChartIcon
+              className={`h-4 w-4 ${totalProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}
+            />
+          }
           iconBg={totalProfit >= 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-red-50 dark:bg-red-900/20"}
           valueColor={totalProfit < 0 ? "text-red-600" : undefined}
           delay={0.25}
