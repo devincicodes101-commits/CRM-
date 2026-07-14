@@ -24,8 +24,6 @@ function fmt(d: string | null) {
 export function RescheduleRequestsWidget({ requests }: { requests: RescheduleRow[] }) {
   const [pending, startTransition] = useTransition();
 
-  if (requests.length === 0) return null;
-
   function onApprove(r: RescheduleRow) {
     if (!r.requested_date) {
       toast.error("No requested date on this request");
@@ -55,6 +53,9 @@ export function RescheduleRequestsWidget({ requests }: { requests: RescheduleRow
           {requests.length} pending
         </span>
       </div>
+      {requests.length === 0 && (
+        <p className="text-sm text-muted-foreground px-5 py-6">No pending reschedule requests.</p>
+      )}
       <ul className="divide-y">
         {requests.map((r) => (
           <li key={r.id} className="px-5 py-3 flex items-center justify-between gap-3">

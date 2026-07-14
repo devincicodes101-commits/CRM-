@@ -57,8 +57,6 @@ export function MessagesWidget({ messages }: { messages: MessageRow[] }) {
   const [reply, setReply] = useState("");
   const [pending, startTransition] = useTransition();
 
-  if (conversations.length === 0) return null;
-
   function handleReply(convo: Conversation) {
     startTransition(async () => {
       const res = await replyToMessage({
@@ -86,6 +84,9 @@ export function MessagesWidget({ messages }: { messages: MessageRow[] }) {
           {conversations.length} open
         </span>
       </div>
+      {conversations.length === 0 && (
+        <p className="text-sm text-muted-foreground px-5 py-6">No open customer messages.</p>
+      )}
       <ul className="divide-y">
         {conversations.map((convo) => {
           const isOpen = openKey === convo.key;

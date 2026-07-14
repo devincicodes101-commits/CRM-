@@ -22,6 +22,7 @@ import {
 } from "@/components/dashboard/low-rating-alerts-widget";
 import { AnalyticsKPIs } from "@/components/dashboard/analytics-kpis";
 import { LiveMapWidget, type MapVehicle } from "@/components/dashboard/live-map-widget";
+import { ClientErrorBoundary } from "@/components/shared/client-error-boundary";
 import { RecentQuotesList } from "@/components/dashboard/recent-quotes-list";
 import { UpcomingJobsList } from "@/components/dashboard/upcoming-jobs-list";
 
@@ -250,21 +251,27 @@ export default async function DashboardPage() {
       <RemindersWidget quotes={reminderQuotes} invoices={reminderInvoices} jobs={reminderJobs} />
 
       {/* Section 6 — Low ratings */}
-      <LowRatingAlertsWidget alerts={alerts} />
+      <ClientErrorBoundary label="Low Rating Alerts">
+        <LowRatingAlertsWidget alerts={alerts} />
+      </ClientErrorBoundary>
 
       {/* Section 7 — Analytics */}
-      <AnalyticsKPIs
-        jobs={d.jobs}
-        invoices={d.invoices}
-        vehicles={d.vehicles}
-        leads={d.leads}
-        users={d.users}
-        receipts={d.receipts}
-        marketingSpend={d.marketingSpend}
-      />
+      <ClientErrorBoundary label="Analytics KPIs">
+        <AnalyticsKPIs
+          jobs={d.jobs}
+          invoices={d.invoices}
+          vehicles={d.vehicles}
+          leads={d.leads}
+          users={d.users}
+          receipts={d.receipts}
+          marketingSpend={d.marketingSpend}
+        />
+      </ClientErrorBoundary>
 
       {/* Section 8 — Live map */}
-      <LiveMapWidget vehicles={mapVehicles} />
+      <ClientErrorBoundary label="Live Fleet Map">
+        <LiveMapWidget vehicles={mapVehicles} />
+      </ClientErrorBoundary>
 
       {/* Section 9 — Recent quotes + upcoming jobs */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
