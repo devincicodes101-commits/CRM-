@@ -2,90 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  Users,
-  TrendingUp,
-  Briefcase,
-  FileText,
-  Receipt,
-  Truck,
-  HardHat,
-  Wrench,
-  Layers,
-  MessageSquare,
-  BarChart3,
-  Settings,
-  Map,
-  Trophy,
-  ShieldCheck,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { NavItem, UserRole } from "@/types";
-
-const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Customers", href: "/customers", icon: Users },
-  { label: "Leads", href: "/leads", icon: TrendingUp },
-  { label: "Services", href: "/services", icon: Layers, roles: ["admin", "user"] },
-  { label: "Jobs", href: "/jobs", icon: Briefcase },
-  { label: "Quotes", href: "/quotes", icon: FileText },
-  { label: "Invoices", href: "/invoices", icon: Receipt },
-  {
-    label: "Fleet",
-    href: "/fleet",
-    icon: Truck,
-    roles: ["admin", "user"],
-  },
-  {
-    label: "Field",
-    href: "/field",
-    icon: Wrench,
-    roles: ["admin", "user", "operative"],
-  },
-  {
-    label: "Contractors",
-    href: "/contractors",
-    icon: HardHat,
-    roles: ["admin", "user"],
-  },
-  {
-    label: "Comms",
-    href: "/comms",
-    icon: MessageSquare,
-    roles: ["admin", "user"],
-  },
-  {
-    label: "Route Planning",
-    href: "/route-planning",
-    icon: Map,
-    roles: ["admin", "user"],
-  },
-  {
-    label: "Performance",
-    href: "/performance",
-    icon: Trophy,
-    roles: ["admin", "user"],
-  },
-  {
-    label: "Analytics",
-    href: "/analytics",
-    icon: BarChart3,
-    roles: ["admin"],
-  },
-  {
-    label: "Admin",
-    href: "/admin",
-    icon: ShieldCheck,
-    roles: ["admin"],
-  },
-  {
-    label: "Settings",
-    href: "/settings",
-    icon: Settings,
-    roles: ["admin"],
-  },
-];
+import type { UserRole } from "@/types";
+import { NAV_ITEMS } from "./nav-items";
 
 type SidebarProps = {
   userRole: UserRole;
