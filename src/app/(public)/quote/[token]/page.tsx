@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { QuoteActions } from "./quote-actions";
 import type { Quote } from "@/lib/schemas/quotes";
 
@@ -9,12 +9,15 @@ export default async function PublicQuotePage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const supabase = await createClient();
+  // Public (unauthenticated) page: possession of the random public_token
+  // IS the authorization. Use the service client (bypasses RLS) and look the
+  // quote up by its unguessable token, never the sequential quote_number.
+  const supabase = await createServiceClient();
 
   const { data: quote } = await supabase
     .from("quotes")
     .select("*")
-    .eq("quote_number", token)
+    .eq("public_token", token)
     .single<Quote>();
 
   if (!quote) notFound();
@@ -152,7 +155,7 @@ export default async function PublicQuotePage({
 
       {/* Accept / Decline */}
       {canRespond && (
-        <QuoteActions quoteNumber={quote.quote_number} />
+        <QuoteActions token={quote.public_token} />
       )}
 
       {isExpired && quote.status === "sent" && (

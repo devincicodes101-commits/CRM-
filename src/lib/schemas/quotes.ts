@@ -46,6 +46,8 @@ export const quoteInsertSchema = z.object({
 export const quoteSelectSchema = baseSelectSchema.extend({
   ...quoteInsertSchema.shape,
   quote_number: z.string(),
+  // Unguessable token for the public /quote/[token] page (never the sequential number).
+  public_token: z.string(),
 });
 
 export const quoteUpdateSchema = quoteInsertSchema.partial();

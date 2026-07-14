@@ -13,7 +13,12 @@ export async function registerUser(
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
   const fullName = String(formData.get("full_name") ?? "");
-  const role = String(formData.get("role") ?? "user") as UserRole;
+  // Only least-privileged roles may be self-assigned at signup. Staff
+  // roles (admin/user-manager/sales/telesales/operative) are granted by an
+  // admin via the admin panel — never from a public registration form.
+  // This is enforced authoritatively in the DB trigger too (defense in depth).
+  const requestedRole = String(formData.get("role") ?? "");
+  const role: UserRole = requestedRole === "contractor" ? "contractor" : "user";
 
   if (password.length < 8) {
     return { error: "Password must be at least 8 characters" };

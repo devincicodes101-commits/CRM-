@@ -6,9 +6,9 @@ import { CheckCircle, XCircle } from "lucide-react";
 import { acceptQuotePublic, declineQuotePublic } from "./actions";
 import { Button } from "@/components/ui/button";
 
-type Props = { quoteNumber: string };
+type Props = { token: string };
 
-export function QuoteActions({ quoteNumber }: Props) {
+export function QuoteActions({ token }: Props) {
   const [pending, startTransition] = useTransition();
   const [action, setAction] = useState<"accept" | "decline" | null>(null);
   const [done, setDone] = useState<"accepted" | "declined" | null>(null);
@@ -16,7 +16,7 @@ export function QuoteActions({ quoteNumber }: Props) {
   function handleAccept() {
     setAction("accept");
     startTransition(async () => {
-      const result = await acceptQuotePublic(quoteNumber);
+      const result = await acceptQuotePublic(token);
       if (result?.error) {
         toast.error(result.error);
         setAction(null);
@@ -29,7 +29,7 @@ export function QuoteActions({ quoteNumber }: Props) {
   function handleDecline() {
     setAction("decline");
     startTransition(async () => {
-      const result = await declineQuotePublic(quoteNumber);
+      const result = await declineQuotePublic(token);
       if (result?.error) {
         toast.error(result.error);
         setAction(null);

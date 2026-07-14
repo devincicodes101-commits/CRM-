@@ -1,0 +1,19 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    { "path": "/api/cron/quote-followup-1day", "schedule": "0 2 * * *" },
+    { "path": "/api/cron/quote-discount-reminder", "schedule": "0 10 * * *" },
+    { "path": "/api/cron/new-lead-sequence", "schedule": "0 9 * * *" },
+    { "path": "/api/cron/high-value-commercial-reminder", "schedule": "0 2 * * 1" },
+    { "path": "/api/cron/job-reminder-24h", "schedule": "0 1 * * *" },
+    { "path": "/api/cron/operative-job-summary-am", "schedule": "0 5 * * *" },
+    { "path": "/api/cron/operative-job-summary-pm", "schedule": "45 16 * * *" },
+    { "path": "/api/cron/thank-you-emails", "schedule": "0 10 * * *" },
+    { "path": "/api/cron/invoiced-job-reminder", "schedule": "0 2 * * *" },
+    { "path": "/api/cron/overdue-invoice-reminder", "schedule": "0 3 * * *" },
+    { "path": "/api/cron/commission-chaser", "schedule": "0 4 * * *" },
+    { "path": "/api/cron/monthly-commissions", "schedule": "0 1 30 * *" },
+    { "path": "/api/cron/motivational-quote", "schedule": "0 8 * * 1-5" },
+    { "path": "/api/cron/friday-spin-notification", "schedule": "0 7 * * 5" }
+  ]
+}
