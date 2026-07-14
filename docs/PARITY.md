@@ -38,9 +38,9 @@ Next.js + Supabase app. Update the Status column as work lands.
 
 | Base44 page | Route in repo | Status |
 |---|---|---|
-| Dashboard | `/dashboard` | 🟡 |
-| Leads | `/leads` | 🟡 |
-| Quotes + builder | `/quotes` | 🟡 |
+| Dashboard | `/dashboard` | ✅ full Base44 parity |
+| Leads | `/leads` | 🟡 CRUD + new-lead alert automation ✅ |
+| Quotes + builder | `/quotes` | 🟡 CRUD + quote→customer + send-email ✅ |
 | Customers | `/customers` | 🟡 |
 | Jobs / Calendar | `/jobs` | 🟡 |
 | Invoices | `/invoices` | 🟡 |
