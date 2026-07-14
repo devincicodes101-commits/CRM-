@@ -85,6 +85,26 @@ export async function archiveAlert(alertId: string): Promise<ActionResult> {
   return { ok: true };
 }
 
+// ── Row deletes (stay on the dashboard, unlike the list-page deletes
+//    which redirect back to their index route) ───────────────────
+export async function deleteQuoteFromDashboard(id: string): Promise<ActionResult> {
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: "Not authenticated" };
+  const { error } = await supabase.from("quotes").delete().eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+export async function deleteJobFromDashboard(id: string): Promise<ActionResult> {
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: "Not authenticated" };
+  const { error } = await supabase.from("jobs").delete().eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
 // ── Customer message reply ────────────────────────────────────
 export async function replyToMessage(input: {
   conversationId: string | null;

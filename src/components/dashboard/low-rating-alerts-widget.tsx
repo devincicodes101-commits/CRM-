@@ -38,10 +38,15 @@ export function LowRatingAlertsWidget({ alerts }: { alerts: AlertRow[] }) {
   }
 
   return (
-    <div className="rounded-xl border bg-card">
+    <div className="rounded-xl border border-l-4 border-l-red-500 bg-card">
       <div className="flex items-center gap-2 px-5 py-4 border-b font-semibold text-sm">
-        <Star className="h-4 w-4 text-yellow-500" />
+        <Star className="h-4 w-4 text-red-500" />
         Low Rating Alerts
+        {alerts.length > 0 && (
+          <span className="ml-auto text-xs rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-2 py-0.5">
+            {alerts.length} active
+          </span>
+        )}
       </div>
 
       {alerts.length === 0 ? (

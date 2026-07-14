@@ -47,7 +47,7 @@ export function RescheduleRequestsWidget({ requests }: { requests: RescheduleRow
   }
 
   return (
-    <div className="rounded-xl border bg-card">
+    <div className="rounded-xl border border-l-4 border-l-amber-500 bg-card">
       <div className="flex items-center gap-2 px-5 py-4 border-b font-semibold text-sm">
         <CalendarClock className="h-4 w-4 text-amber-500" />
         Reschedule Requests

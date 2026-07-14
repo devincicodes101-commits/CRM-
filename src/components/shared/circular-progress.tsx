@@ -11,6 +11,8 @@ export type CircularProgressProps = {
   color?: string;
   trackColor?: string;
   label?: string;
+  /** CSS color for the centered percentage text. */
+  valueColor?: string;
   className?: string;
 };
 
@@ -21,6 +23,7 @@ export function CircularProgress({
   color = "#84cc16",
   trackColor = "rgba(120,120,120,0.15)",
   label,
+  valueColor,
   className,
 }: CircularProgressProps) {
   const clamped = Math.max(0, Math.min(100, value));
@@ -56,7 +59,9 @@ export function CircularProgress({
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-lg font-bold">{Math.round(clamped)}%</span>
+        <span className="text-lg font-bold" style={valueColor ? { color: valueColor } : undefined}>
+          {Math.round(clamped)}%
+        </span>
         {label && <span className="text-[10px] text-muted-foreground">{label}</span>}
       </div>
     </div>

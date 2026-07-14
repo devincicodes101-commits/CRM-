@@ -78,7 +78,7 @@ export function MessagesWidget({ messages }: { messages: MessageRow[] }) {
   }
 
   return (
-    <div className="rounded-xl border bg-card">
+    <div className="rounded-xl border border-l-4 border-l-blue-500 bg-card">
       <div className="flex items-center gap-2 px-5 py-4 border-b font-semibold text-sm">
         <MessageSquare className="h-4 w-4 text-blue-500" />
         Customer Messages

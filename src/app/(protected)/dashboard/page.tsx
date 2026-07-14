@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { format, startOfMonth, endOfMonth, subDays } from "date-fns";
+import { startOfMonth, endOfMonth, subDays } from "date-fns";
 import { Handshake, PoundSterling, Briefcase, AlertCircle, Truck, XCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/shared/page-header";
@@ -22,24 +22,14 @@ import {
 } from "@/components/dashboard/low-rating-alerts-widget";
 import { AnalyticsKPIs } from "@/components/dashboard/analytics-kpis";
 import { LiveMapWidget, type MapVehicle } from "@/components/dashboard/live-map-widget";
+import { RecentQuotesList } from "@/components/dashboard/recent-quotes-list";
+import { UpcomingJobsList } from "@/components/dashboard/upcoming-jobs-list";
 
 // Supabase has no generated DB types in this repo yet, so rows are untyped.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = any;
 
 const gbp = (n: number) => `£${Math.round(n).toLocaleString("en-GB")}`;
-
-const QUOTE_STATUS: Record<string, string> = {
-  draft: "bg-muted text-muted-foreground",
-  sent: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-  accepted: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
-  declined: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
-  expired: "bg-muted text-muted-foreground",
-};
-const JOB_STATUS: Record<string, string> = {
-  scheduled: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-  in_progress: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
-};
 
 async function getData() {
   const supabase = await createClient();
@@ -54,7 +44,7 @@ async function getData() {
     invoicesRes,
     leadsRes,
     receiptsRes,
-    usersCountRes,
+    usersRes,
     messagesRes,
     reschedRes,
     alertsRes,
@@ -66,7 +56,7 @@ async function getData() {
     supabase.from("invoices").select("*"),
     supabase.from("leads").select("*"),
     supabase.from("receipts").select("job_id, amount_gbp, status"),
-    supabase.from("users").select("id", { count: "exact", head: true }),
+    supabase.from("users").select("full_name"),
     supabase.from("messages").select("*").eq("status", "open").eq("sender_type", "customer"),
     supabase.from("reschedule_requests").select("*").eq("status", "pending"),
     supabase.from("alerts").select("*").eq("alert_type", "low_rating").eq("status", "active"),
@@ -80,7 +70,7 @@ async function getData() {
     invoices: (invoicesRes.data ?? []) as Row[],
     leads: (leadsRes.data ?? []) as Row[],
     receipts: (receiptsRes.data ?? []) as Row[],
-    userCount: usersCountRes.count ?? 0,
+    users: (usersRes.data ?? []) as Row[],
     messages: (messagesRes.data ?? []) as Row[],
     reschedules: (reschedRes.data ?? []) as Row[],
     alerts: (alertsRes.data ?? []) as Row[],
@@ -228,7 +218,7 @@ export default async function DashboardPage() {
               {acceptedThisMonth} of {thisMonthQuotes.length} quotes
             </p>
           </div>
-          <CircularProgress value={acceptedPct} color="#84cc16" size={84} />
+          <CircularProgress value={acceptedPct} color="#8BC34A" valueColor="#E91E63" size={72} />
         </div>
       </div>
 
@@ -268,7 +258,7 @@ export default async function DashboardPage() {
         invoices={d.invoices}
         vehicles={d.vehicles}
         leads={d.leads}
-        userCount={d.userCount}
+        users={d.users}
         receipts={d.receipts}
         marketingSpend={d.marketingSpend}
       />
@@ -278,69 +268,20 @@ export default async function DashboardPage() {
 
       {/* Section 9 — Recent quotes + upcoming jobs */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="rounded-xl border bg-card">
+        <div className="rounded-xl border bg-card overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b font-semibold text-sm">
             Recent Quotes
-            <Link href="/quotes" className="text-xs text-primary hover:underline">View all</Link>
+            <Link href="/quotes" className="text-xs text-primary hover:underline">View all →</Link>
           </div>
-          {recentQuotes.length === 0 ? (
-            <p className="text-sm text-muted-foreground px-5 py-6">No quotes yet.</p>
-          ) : (
-            <ul className="divide-y">
-              {recentQuotes.map((q) => (
-                <li key={q.id}>
-                  <Link href={`/quotes/${q.id}`} className="flex items-center justify-between px-5 py-3 hover:bg-muted/50">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{q.customer_name}</p>
-                      <p className="text-xs text-muted-foreground">{q.quote_number}</p>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-sm font-medium">{gbp(q.total ?? 0)}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${QUOTE_STATUS[q.status] ?? "bg-muted"}`}>
-                        {q.status}
-                      </span>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+          <RecentQuotesList quotes={recentQuotes} />
         </div>
 
-        <div className="rounded-xl border bg-card">
+        <div className="rounded-xl border bg-card overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b font-semibold text-sm">
             Upcoming Jobs
-            <Link href="/jobs" className="text-xs text-primary hover:underline">View calendar</Link>
+            <Link href="/jobs" className="text-xs text-primary hover:underline">View calendar →</Link>
           </div>
-          {upcomingJobs.length === 0 ? (
-            <p className="text-sm text-muted-foreground px-5 py-6">No upcoming jobs.</p>
-          ) : (
-            <ul className="divide-y">
-              {upcomingJobs.map((j) => (
-                <li key={j.id}>
-                  <Link href={`/jobs/${j.id}`} className="flex items-center justify-between px-5 py-3 hover:bg-muted/50">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="h-2 w-2 rounded-full bg-orange-500 shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{j.title}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {j.customer_name} · {j.address}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-xs text-muted-foreground">
-                        {j.start_date ? format(new Date(j.start_date), "d MMM") : ""}
-                      </span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${JOB_STATUS[j.status] ?? "bg-muted"}`}>
-                        {j.status?.replace(/_/g, " ")}
-                      </span>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+          <UpcomingJobsList jobs={upcomingJobs} />
         </div>
       </div>
     </div>
