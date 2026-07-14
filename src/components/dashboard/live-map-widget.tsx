@@ -102,13 +102,16 @@ export function LiveMapWidget({ vehicles }: { vehicles: MapVehicle[] }) {
         </span>
       </div>
 
-      {vehicles.length === 0 ? (
+      {trackedCount === 0 ? (
         <p className="text-sm text-muted-foreground px-5 py-8 text-center">
-          No vehicles with GPS data yet.
+          No vehicles with GPS data available.
         </p>
       ) : (
+        <DynamicMap vehicles={vehicles} />
+      )}
+
+      {vehicles.length > 0 && (
         <>
-          <DynamicMap vehicles={vehicles} />
           <ul className="divide-y max-h-48 overflow-y-auto">
             {vehicles.map((v) => (
               <li key={v.id} className="flex items-center justify-between px-5 py-2.5 text-sm">
