@@ -3,48 +3,15 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Menu,
-  X,
-  LayoutDashboard,
-  Users,
-  TrendingUp,
-  Briefcase,
-  FileText,
-  Receipt,
-  Truck,
-  HardHat,
-  Wrench,
-} from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
   SheetTrigger,
   SheetContent,
 } from "@/components/ui/sheet";
-import type { NavItem, UserRole } from "@/types";
-
-const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Customers", href: "/customers", icon: Users },
-  { label: "Leads", href: "/leads", icon: TrendingUp },
-  { label: "Jobs", href: "/jobs", icon: Briefcase },
-  { label: "Quotes", href: "/quotes", icon: FileText },
-  { label: "Invoices", href: "/invoices", icon: Receipt },
-  { label: "Fleet", href: "/fleet", icon: Truck, roles: ["admin", "user"] },
-  {
-    label: "Field",
-    href: "/field",
-    icon: Wrench,
-    roles: ["admin", "user", "operative"],
-  },
-  {
-    label: "Contractors",
-    href: "/contractors",
-    icon: HardHat,
-    roles: ["admin", "user"],
-  },
-];
+import type { UserRole } from "@/types";
+import { NAV_ITEMS } from "./nav-items";
 
 type MobileNavProps = {
   userRole: UserRole;
