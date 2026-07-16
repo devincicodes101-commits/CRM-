@@ -25,6 +25,8 @@ import {
   Map,
   Trophy,
   ShieldCheck,
+  AlertTriangle,
+  Inbox,
 } from "lucide-react";
 import type { NavItem } from "@/types";
 
@@ -54,6 +56,8 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Analytics", href: "/analytics", icon: BarChart3, roles: ["admin"] },
   { label: "Audit Log", href: "/settings/audit", icon: ScrollText, roles: ["admin"] },
   { label: "Friday Spin!", href: "/spin-wheel", icon: Gift },
+  { label: "Alerts", href: "/alerts", icon: AlertTriangle, roles: ["admin", "user"] },
+  { label: "Staff Mailbox", href: "/staff-mailbox", icon: Inbox, roles: ["admin", "user", "sales", "telesales", "operative"] },
   { label: "Bulk Management", href: "/bulk-management", icon: Boxes, roles: ["admin"] },
   { label: "Admin", href: "/admin", icon: ShieldCheck, roles: ["admin"] },
   { label: "Settings", href: "/settings", icon: Settings, roles: ["admin"] },
