@@ -55,10 +55,10 @@ export function MobileNav({ userRole }: MobileNavProps) {
                     href={item.href}
                     onClick={() => setOpen(false)}
                     className={cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                      "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                       active
-                        ? "bg-accent text-accent-foreground"
-                        : "hover:bg-accent/50"
+                        ? "bg-primary text-white"
+                        : "hover:bg-gray-100 text-gray-700"
                     )}
                   >
                     <item.icon className="h-4 w-4 shrink-0" />

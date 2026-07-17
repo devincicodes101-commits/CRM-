@@ -42,11 +42,11 @@ export function StatCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay, ease: "easeOut" }}
-      className={cn("rounded-xl border bg-card p-5", className)}
+      className={cn("rounded-2xl border bg-white shadow-sm p-5", className)}
     >
       <div className="flex items-start justify-between">
         <p className="text-sm text-muted-foreground font-medium">{title}</p>
-        {icon && <span className={cn("p-2 rounded-md", iconBg)}>{icon}</span>}
+        {icon && <span className={cn("p-3 rounded-full", iconBg)}>{icon}</span>}
       </div>
       <p className={cn("mt-3 text-2xl font-bold tracking-tight", valueColor)}>{value}</p>
       <div className="mt-1 flex items-center gap-2">

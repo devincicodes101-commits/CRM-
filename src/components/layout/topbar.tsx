@@ -1,16 +1,9 @@
 "use client";
 
 import { MobileNav } from "./mobile-nav";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { createClient } from "@/lib/supabase/client";
+import { Search, Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import type { UserProfile } from "@/types";
 
 type TopbarProps = {
@@ -19,44 +12,46 @@ type TopbarProps = {
 
 export function Topbar({ user }: TopbarProps) {
   const router = useRouter();
+  const [query, setQuery] = useState("");
 
-  async function signOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    if (query.trim()) {
+      router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+    }
   }
 
-  const initials = user.full_name
-    .split(" ")
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
   return (
-    <header className="h-16 border-b flex items-center justify-between px-4 lg:px-6 bg-background">
+    <header className="h-14 border-b flex items-center justify-between px-4 lg:px-5 bg-white gap-3"
+      style={{ borderColor: "oklch(0.91 0 0)" }}>
       <MobileNav userRole={user.role} />
-      <div className="flex-1" />
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label="User menu"
-        >
-          <Avatar className="h-9 w-9 cursor-pointer">
-            <AvatarFallback>{initials}</AvatarFallback>
-          </Avatar>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          <div className="px-2 py-1.5">
-            <p className="text-sm font-medium truncate">{user.full_name}</p>
-            <p className="text-xs text-muted-foreground truncate capitalize">
-              {user.role}
-            </p>
-          </div>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={signOut}>Sign out</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+
+      {/* Mail icon */}
+      <a
+        href="/staff-mailbox"
+        className="hidden lg:flex items-center justify-center w-9 h-9 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-700 shrink-0"
+        aria-label="Staff Mailbox"
+      >
+        <Mail className="h-5 w-5" />
+      </a>
+
+      {/* Search bar */}
+      <form onSubmit={handleSearch} className="flex-1 max-w-md">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search customers, quotes, invoices…"
+            className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border bg-gray-50 text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:border-transparent transition-all"
+            style={{ borderColor: "oklch(0.91 0 0)", "--tw-ring-color": "var(--primary)" } as React.CSSProperties}
+          />
+        </div>
+      </form>
+
+      {/* Spacer */}
+      <div className="flex-1 hidden lg:block" />
     </header>
   );
 }

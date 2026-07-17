@@ -34,7 +34,7 @@ export default async function ProtectedLayout({
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar userRole={safeProfile.role} />
+      <Sidebar user={safeProfile} />
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <Topbar user={safeProfile} />
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">{children}</main>
