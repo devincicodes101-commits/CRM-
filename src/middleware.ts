@@ -11,6 +11,8 @@ const PUBLIC_PATHS = [
   "/feedback/",
   "/portal/",
   "/chat",
+  "/job-messages/",
+  "/subcontractor",
 ];
 
 export async function middleware(request: NextRequest) {

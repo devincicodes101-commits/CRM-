@@ -174,6 +174,14 @@ export default async function JobDetailPage({
               size="sm"
             />
           )}
+          {job.message_token && (
+            <CopyLinkButton
+              url={`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/job-messages/${job.message_token}`}
+              label="Messages Link"
+              variant="outline"
+              size="sm"
+            />
+          )}
           <Link
             href={`/jobs/${id}/edit`}
             className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
