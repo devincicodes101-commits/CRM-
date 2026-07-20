@@ -20,6 +20,7 @@ import {
   LowRatingAlertsWidget,
   type AlertRow,
 } from "@/components/dashboard/low-rating-alerts-widget";
+import { NewLeadsWidget, type NewLeadRow } from "@/components/dashboard/new-leads-widget";
 import { AnalyticsKPIs } from "@/components/dashboard/analytics-kpis";
 import { LiveMapWidget, type MapVehicle } from "@/components/dashboard/live-map-widget";
 import { ClientErrorBoundary } from "@/components/shared/client-error-boundary";
@@ -169,6 +170,19 @@ export default async function DashboardPage() {
       start_date: j.start_date,
     }));
 
+  const newLeads: NewLeadRow[] = d.leads
+    .filter((l) => l.status === "new")
+    .sort((a, b) => (b.created_date ?? "").localeCompare(a.created_date ?? ""))
+    .slice(0, 5)
+    .map((l) => ({
+      id: l.id,
+      name: l.name,
+      source: l.source ?? null,
+      service_interest: l.service_interest ?? null,
+      estimated_value: l.estimated_value ?? null,
+      created_date: l.created_date,
+    }));
+
   const alerts: AlertRow[] = d.alerts.map((a) => ({
     id: a.id,
     star_rating: a.star_rating ?? null,
@@ -242,6 +256,9 @@ export default async function DashboardPage() {
           icon={<XCircle className="h-4 w-4 text-red-600" />}
           iconBg="bg-red-50 dark:bg-red-900/20" delay={0.2} />
       </div>
+
+      {/* New leads (incl. website chat) */}
+      <NewLeadsWidget leads={newLeads} />
 
       {/* Sections 3 & 4 — Messages + Reschedules */}
       <MessagesWidget messages={messages} />
