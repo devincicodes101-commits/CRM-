@@ -65,7 +65,7 @@ export function BulkJobsTable({ jobs, teamMembers }: { jobs: Job[]; teamMembers:
     startTransition(async () => {
       const ids = selected.size > 0 ? Array.from(selected) : filtered.map(j => j.id);
       const result = await exportJobsCSV(ids);
-      if (result?.csv) {
+      if (result && "csv" in result) {
         const blob = new Blob([result.csv], { type: "text/csv" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");

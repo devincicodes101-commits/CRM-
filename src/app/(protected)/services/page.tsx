@@ -28,11 +28,14 @@ export default async function ServicesPage({
   const { cat, q } = await searchParams;
   const supabase = await createClient();
 
-  let query = supabase.from("services").select("*").order("category").order("name").returns<Service[]>();
+  let query = supabase.from("services").select("*");
   if (cat && cat !== "all") query = query.eq("category", cat);
   if (q) query = query.ilike("name", `%${q}%`);
 
-  const { data: services } = await query;
+  const { data: services } = await query
+    .order("category")
+    .order("name")
+    .returns<Service[]>();
   const list = services ?? [];
 
   const usedCategories = [...new Set(list.map((s) => s.category))];

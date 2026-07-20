@@ -17,11 +17,7 @@ export default async function CustomersPage({
   const { type, q } = await searchParams;
   const supabase = await createClient();
 
-  let query = supabase
-    .from("customers")
-    .select("*")
-    .order("created_date", { ascending: false })
-    .returns<Customer[]>();
+  let query = supabase.from("customers").select("*");
 
   if (type && type !== "all") {
     query = query.eq("client_type", type);
@@ -30,7 +26,9 @@ export default async function CustomersPage({
     query = query.ilike("name", `%${q}%`);
   }
 
-  const { data: customers } = await query;
+  const { data: customers } = await query
+    .order("created_date", { ascending: false })
+    .returns<Customer[]>();
   const list = customers ?? [];
 
   return (

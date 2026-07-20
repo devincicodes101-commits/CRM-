@@ -27,12 +27,14 @@ export default async function LeadsPage({
   const { status, source, q } = await searchParams;
   const supabase = await createClient();
 
-  let query = supabase.from("leads").select("*").order("created_date", { ascending: false }).returns<Lead[]>();
+  let query = supabase.from("leads").select("*");
   if (status && status !== "all") query = query.eq("status", status);
   if (source && source !== "all") query = query.eq("source", source);
   if (q) query = query.ilike("name", `%${q}%`);
 
-  const { data: leads } = await query;
+  const { data: leads } = await query
+    .order("created_date", { ascending: false })
+    .returns<Lead[]>();
   const list = leads ?? [];
 
   const totalLeads = list.length;

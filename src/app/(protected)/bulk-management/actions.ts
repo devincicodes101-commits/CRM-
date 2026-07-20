@@ -3,13 +3,25 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+// Bulk operations are powerful (and the CSV export exposes all customer data),
+// so gate them to staff roles rather than any authenticated user.
+async function requireStaff() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { supabase, error: "Not authenticated" as const };
+  const { data: me } = await supabase.from("users").select("role").eq("id", user.id).single();
+  if (!me || !["admin", "user", "sales", "telesales"].includes(me.role)) {
+    return { supabase, error: "Forbidden" as const };
+  }
+  return { supabase, error: null };
+}
+
 export async function bulkUpdateStatus(
   jobIds: string[],
   status: string
 ): Promise<{ error: string } | void> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  const { supabase, error: authErr } = await requireStaff();
+  if (authErr) return { error: authErr };
 
   const { error } = await supabase
     .from("jobs")
@@ -25,9 +37,8 @@ export async function bulkAssignTeam(
   jobIds: string[],
   teamName: string
 ): Promise<{ error: string } | void> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  const { supabase, error: authErr } = await requireStaff();
+  if (authErr) return { error: authErr };
 
   const { error } = await supabase
     .from("jobs")
@@ -41,9 +52,8 @@ export async function bulkAssignTeam(
 export async function exportJobsCSV(
   jobIds: string[]
 ): Promise<{ csv: string } | { error: string }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  const { supabase, error: authErr } = await requireStaff();
+  if (authErr) return { error: authErr };
 
   const { data: jobs, error } = await supabase
     .from("jobs")

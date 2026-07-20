@@ -61,11 +61,7 @@ export default async function StaffMailboxPage({
             Internal team messaging
           </p>
         </div>
-        <ComposeForm
-          senderEmail={me.email}
-          senderName={me.full_name ?? me.email}
-          teamMembers={teamMembers}
-        />
+        <ComposeForm teamMembers={teamMembers} />
       </div>
 
       {/* Tabs */}

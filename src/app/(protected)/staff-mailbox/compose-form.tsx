@@ -7,12 +7,10 @@ import { Pencil, X } from "lucide-react";
 type TeamMember = { id: string; full_name: string; email: string; role: string };
 
 type Props = {
-  senderEmail: string;
-  senderName: string;
   teamMembers: TeamMember[];
 };
 
-export function ComposeForm({ senderEmail, senderName, teamMembers }: Props) {
+export function ComposeForm({ teamMembers }: Props) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [toEmail, setToEmail] = useState("");
@@ -23,8 +21,6 @@ export function ComposeForm({ senderEmail, senderName, teamMembers }: Props) {
     e.preventDefault();
     startTransition(async () => {
       const result = await sendStaffMessage({
-        fromEmail: senderEmail,
-        fromName: senderName,
         toEmail,
         subject,
         body,
