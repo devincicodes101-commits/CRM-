@@ -2,6 +2,7 @@ import { runAutomation } from "./run";
 import { createServiceClient } from "@/lib/supabase/server";
 import { smsTelesalesTeam } from "@/lib/sms";
 import { sendEmail } from "@/lib/email";
+import { brandedEmail, money } from "./emails";
 
 // Entity-triggered automations (Base44 "when X is created/updated" automations).
 // Call the matching dispatcher from a server action AFTER the DB write succeeds.
@@ -21,8 +22,38 @@ function str(v: unknown): string | null {
 }
 
 export function onJobCreated(job: Row): void {
+  // Base44: sendJobBookingConfirmation — confirm the new booking to the customer.
+  runAutomation("sendJobBookingConfirmation", async () => {
+    const email = str(job.customer_email);
+    if (!email) return;
+    const title = str(job.title) ?? "your job";
+    const when = str(job.start_date)
+      ? new Date(String(job.start_date)).toLocaleDateString("en-GB", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        })
+      : "the scheduled date";
+    const base = process.env.NEXT_PUBLIC_BASE_URL ?? "";
+    const token = str(job.message_token);
+
+    await sendEmail({
+      to: email,
+      subject: `Booking confirmed — ${title}`,
+      html: brandedEmail({
+        heading: "Your booking is confirmed",
+        body: `<p>Hi ${str(job.customer_name) ?? "there"},</p>
+          <p>We've booked <strong>${title}</strong> for <strong>${when}</strong>.</p>
+          ${str(job.address) ? `<p>Address: ${str(job.address)}</p>` : ""}
+          <p>Need to change the date? Use the button below.</p>`,
+        cta: token ? { label: "Reschedule", url: `${base}/reschedule/${token}` } : undefined,
+      }),
+    });
+  });
+
   runAutomation("syncJobToFieldApp", async () => {
-    /* TODO: POST job to external Field Service App via CRM_SYNC_SECRET */
+    /* TODO: POST job to external Field Service App via CRM_SYNC_SECRET (needs URL) */
   });
   runAutomation("inviteContractorsForJob", async () => {
     /* TODO: match contractors by coverage + email invites */
@@ -102,15 +133,56 @@ export function onLeadCreated(lead: Row): void {
   });
 }
 
-export function onInvoiceUpdated(invoice: Row, previous?: Row): void {
+export function onInvoicePaid(invoiceId: string): void {
+  // Base44: sendInvoiceReceipt — email the customer a receipt once paid.
   runAutomation("sendInvoiceReceipt", async () => {
-    /* TODO: if status flipped to paid, email receipt */
+    const supabase = await createServiceClient();
+    const { data: inv } = await supabase
+      .from("invoices")
+      .select("invoice_number, customer_name, customer_email, total, amount_paid")
+      .eq("id", invoiceId)
+      .single<{
+        invoice_number: string;
+        customer_name: string | null;
+        customer_email: string | null;
+        total: number | null;
+        amount_paid: number | null;
+      }>();
+    if (!inv?.customer_email) return;
+
+    await sendEmail({
+      to: inv.customer_email,
+      subject: `Payment received — ${inv.invoice_number}`,
+      html: brandedEmail({
+        heading: "Thanks — payment received",
+        body: `<p>Hi ${inv.customer_name ?? "there"},</p>
+          <p>We've received your payment of <strong>${money(inv.amount_paid)}</strong>
+          for invoice <strong>${inv.invoice_number}</strong> (total ${money(inv.total)}).</p>
+          <p>Thank you for your business.</p>`,
+      }),
+    });
   });
 }
 
 export function onFeedbackCreated(feedback: Row): void {
+  // Base44: handleLowRatingAlert — raise an alert on ratings below 3 stars.
+  // Pure DB, works today with no external service.
   runAutomation("handleLowRatingAlert", async () => {
-    /* TODO: if star_rating < 3, insert an alert row */
+    const rating = Number(feedback.star_rating ?? 5);
+    if (!rating || rating >= 3) return;
+
+    const supabase = await createServiceClient();
+    const name = str(feedback.customer_name) ?? "A customer";
+    await supabase.from("alerts").insert({
+      alert_type: "low_rating",
+      title: `Low rating (${rating}★) from ${name}`,
+      message: str(feedback.feedback) ?? "No comment left.",
+      job_id: str(feedback.job_id),
+      customer_name: name,
+      star_rating: rating,
+      feedback_text: str(feedback.feedback),
+      status: "active",
+    });
   });
 }
 

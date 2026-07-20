@@ -1,11 +1,15 @@
 import type { CronJob } from "./types";
+import {
+  quoteDiscountReminder,
+  processDailyThankYouEmails,
+  send24HourJobReminder,
+} from "./scheduled";
 
 // Registry of scheduled automations, keyed by the URL slug used at
 // /api/cron/<slug>. The schedule strings here MUST match vercel.json.
 //
-// Each `run` is currently a STUB that maps 1:1 to a Base44 scheduled function
-// (see docs/PARITY.md). Port them one at a time by replacing the stub body —
-// the harness (auth, dispatch, error handling, logging) is already done.
+// Jobs with a real `run` are ported; `stub(...)` ones still map 1:1 to a Base44
+// scheduled function (see docs/PARITY.md) and are filled in as each lands.
 
 function stub(name: string, schedule: string): CronJob {
   return {
@@ -18,15 +22,27 @@ function stub(name: string, schedule: string): CronJob {
 export const CRON_JOBS: Record<string, CronJob> = {
   // ── Sales / quotes ────────────────────────────────────────
   "quote-followup-1day": stub("quoteFollowupReminder1Day", "0 2 * * *"),
-  "quote-discount-reminder": stub("quoteDiscountReminder", "0 10 * * *"),
+  "quote-discount-reminder": {
+    name: "quoteDiscountReminder",
+    schedule: "0 10 * * *",
+    run: quoteDiscountReminder,
+  },
   "new-lead-sequence": stub("newLeadSequenceRunner", "0 9 * * *"),
   "high-value-commercial-reminder": stub("highValueCommercialReminder", "0 2 * * 1"),
 
   // ── Jobs / field ──────────────────────────────────────────
-  "job-reminder-24h": stub("send24HourJobReminder", "0 1 * * *"),
+  "job-reminder-24h": {
+    name: "send24HourJobReminder",
+    schedule: "0 1 * * *",
+    run: send24HourJobReminder,
+  },
   "operative-job-summary-am": stub("sendOperativeJobSummary", "0 5 * * *"),
   "operative-job-summary-pm": stub("sendOperativeJobSummary", "45 16 * * *"),
-  "thank-you-emails": stub("processDailyThankYouEmails", "0 10 * * *"),
+  "thank-you-emails": {
+    name: "processDailyThankYouEmails",
+    schedule: "0 10 * * *",
+    run: processDailyThankYouEmails,
+  },
   "invoiced-job-reminder": stub("sendInvoicedJobReminder", "0 2 * * *"),
 
   // ── Invoicing / commission ────────────────────────────────

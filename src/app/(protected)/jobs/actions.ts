@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { jobInsertSchema, jobUpdateSchema } from "@/lib/schemas/jobs";
+import { onJobCreated } from "@/lib/automations/triggers";
 
 export async function createJob(values: unknown): Promise<{ error: string } | void> {
   const parsed = jobInsertSchema.safeParse(values);
@@ -16,9 +17,11 @@ export async function createJob(values: unknown): Promise<{ error: string } | vo
   const { data, error } = await supabase
     .from("jobs")
     .insert({ ...parsed.data, created_by_id: user.id })
-    .select("id")
+    .select("id, message_token")
     .single();
   if (error) return { error: error.message };
+
+  onJobCreated({ ...parsed.data, id: data.id, message_token: data.message_token });
 
   // fire-and-forget sync to field app
   const fieldAppUrl = process.env.FIELD_APP_URL;

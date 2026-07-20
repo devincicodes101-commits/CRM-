@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { invoiceInsertSchema, invoiceUpdateSchema } from "@/lib/schemas/invoices";
+import { onInvoicePaid } from "@/lib/automations/triggers";
 
 export async function createInvoice(values: unknown): Promise<{ error: string } | void> {
   const parsed = invoiceInsertSchema.safeParse(values);
@@ -104,6 +105,8 @@ export async function recordPayment(
     })
     .eq("id", id);
   if (error) return { error: error.message };
+
+  if (isPaid) onInvoicePaid(id);
 
   revalidatePath(`/invoices/${id}`);
   revalidatePath("/invoices");

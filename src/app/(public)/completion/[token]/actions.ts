@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { onFeedbackCreated } from "@/lib/automations/triggers";
 
 export async function submitCompletion(
   jobId: string,
@@ -29,6 +30,14 @@ export async function submitCompletion(
   });
   if (error) return { error: error.message };
 
+  onFeedbackCreated({
+    id: jobId,
+    job_id: jobId,
+    star_rating: data.star_rating,
+    customer_name: data.customer_name,
+    feedback: data.customer_comments,
+  });
+
   revalidatePath(`/completion/${token}`);
 }
 
@@ -53,6 +62,14 @@ export async function submitFeedback(
     created_by_id: user?.id ?? null,
   });
   if (error) return { error: error.message };
+
+  onFeedbackCreated({
+    id: jobId,
+    job_id: jobId,
+    star_rating: data.star_rating,
+    customer_name: data.customer_name,
+    feedback: data.feedback,
+  });
 
   revalidatePath(`/feedback/${token}`);
 }
