@@ -78,6 +78,24 @@ export async function updateJobStatus(
   revalidatePath(`/jobs/${id}`);
 }
 
+export async function rescheduleJobDate(
+  jobId: string,
+  newStartISO: string
+): Promise<{ error: string } | { ok: true }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { error } = await supabase
+    .from("jobs")
+    .update({ start_date: newStartISO })
+    .eq("id", jobId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/jobs");
+  return { ok: true };
+}
+
 export async function deleteJob(id: string): Promise<{ error: string } | void> {
   const supabase = await createClient();
   const { error } = await supabase.from("jobs").delete().eq("id", id);
