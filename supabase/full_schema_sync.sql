@@ -1,8 +1,8 @@
 -- ============================================================================
 -- FULL SCHEMA SYNC — idempotent catch-up for a partially-migrated database.
--- Safe to run on a database that already has some tables/enums/policies.
--- Creates whatever is missing; skips whatever already exists.
--- Generated from the repo migrations (base + security + gap-fill + reminder + portal).
+-- Safe to re-run. Creates missing functions/enums/tables/policies/indexes AND
+-- adds any missing columns to pre-existing tables. Skips whatever already exists.
+-- Generated from the repo migrations.
 -- ============================================================================
 
 DO $$ BEGIN
@@ -254,6 +254,22 @@ CREATE TABLE IF NOT EXISTS public.users (
   updated_date     timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS full_name text NOT NULL DEFAULT '';
+
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS email text;
+
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS role user_role NOT NULL DEFAULT 'user';
+
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS avatar_url text;
+
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS nav_permissions text[] NOT NULL DEFAULT '{}';
+
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS mobile_number text;
+
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
+
 SELECT attach_updated_date_trigger('users');
 
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
@@ -293,6 +309,68 @@ CREATE TABLE IF NOT EXISTS public.company_settings (
   updated_date               timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS company_name text;
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS tagline text;
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS email text;
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS sender_email text;
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS phone text;
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS address text;
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS city text;
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS postcode text;
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS website text;
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS base_url text;
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS vat_number text;
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS company_number text;
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS logo_url text;
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS primary_color text NOT NULL DEFAULT '#f97316';
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS quote_footer_text text;
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS invoice_footer_text text;
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS bank_account_name text;
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS bank_sort_code text;
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS bank_account_number text;
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS terms_and_conditions text;
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS role_permissions jsonb NOT NULL DEFAULT '{}';
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS opening_time text NOT NULL DEFAULT '09:00';
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS closing_time text NOT NULL DEFAULT '17:30';
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS working_days integer[] NOT NULL DEFAULT '{1,2,3,4,5}';
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS business_timezone text NOT NULL DEFAULT 'Europe/London';
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS default_labour_rate numeric(10,2);
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS monthly_marketing_spend numeric(10,2);
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS new_lead_sequence_start_date timestamptz;
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
+
 SELECT attach_updated_date_trigger('company_settings');
 
 ALTER TABLE public.company_settings ENABLE ROW LEVEL SECURITY;
@@ -318,6 +396,40 @@ CREATE TABLE IF NOT EXISTS public.customers (
   created_date     timestamptz NOT NULL DEFAULT now(),
   updated_date     timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS name text;
+
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS company text;
+
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS email text;
+
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS email_status email_status NOT NULL DEFAULT 'valid';
+
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS phone text;
+
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS address text;
+
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS city text;
+
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS postcode text;
+
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS notes text;
+
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS status customer_status NOT NULL DEFAULT 'lead';
+
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS client_type client_type NOT NULL DEFAULT 'domestic';
+
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS total_spent numeric(10,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS reviews jsonb NOT NULL DEFAULT '[]';
+
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS average_rating numeric(3,2);
+
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
 
 CREATE INDEX IF NOT EXISTS idx_customers_email ON public.customers(email);
 
@@ -356,6 +468,56 @@ CREATE TABLE IF NOT EXISTS public.leads (
   updated_date             timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS name text;
+
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS email text;
+
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS phone text;
+
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS source lead_source;
+
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS category lead_category;
+
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS service_interest text;
+
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS message text;
+
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS address text;
+
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS status lead_status NOT NULL DEFAULT 'new';
+
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS priority lead_priority NOT NULL DEFAULT 'medium';
+
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS assigned_to text;
+
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS assigned_to_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS notes text;
+
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS call_notes text;
+
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS follow_up_date timestamptz;
+
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS follow_up_time text;
+
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS estimated_value numeric(10,2);
+
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS converted_to_customer_id uuid REFERENCES public.customers(id) ON DELETE SET NULL;
+
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS converted_to_quote_id uuid;
+
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS seq_steps_sent integer[] NOT NULL DEFAULT '{}';
+
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS consent_given boolean NOT NULL DEFAULT false;
+
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS consent_date timestamptz;
+
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
+
 CREATE INDEX IF NOT EXISTS idx_leads_status_assigned ON public.leads(status, assigned_to_id);
 
 CREATE INDEX IF NOT EXISTS idx_leads_search ON public.leads USING gin(to_tsvector('english', name || ' ' || COALESCE(email, '') || ' ' || COALESCE(phone, '')));
@@ -381,6 +543,34 @@ CREATE TABLE IF NOT EXISTS public.services (
   created_date       timestamptz NOT NULL DEFAULT now(),
   updated_date       timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.services ADD COLUMN IF NOT EXISTS name text;
+
+ALTER TABLE public.services ADD COLUMN IF NOT EXISTS category service_category NOT NULL DEFAULT 'general';
+
+ALTER TABLE public.services ADD COLUMN IF NOT EXISTS description text;
+
+ALTER TABLE public.services ADD COLUMN IF NOT EXISTS unit_price numeric(10,2);
+
+ALTER TABLE public.services ADD COLUMN IF NOT EXISTS unit_type service_unit_type NOT NULL DEFAULT 'fixed';
+
+ALTER TABLE public.services ADD COLUMN IF NOT EXISTS estimated_duration text;
+
+ALTER TABLE public.services ADD COLUMN IF NOT EXISTS image_url text;
+
+ALTER TABLE public.services ADD COLUMN IF NOT EXISTS video_prompt text;
+
+ALTER TABLE public.services ADD COLUMN IF NOT EXISTS video_url text;
+
+ALTER TABLE public.services ADD COLUMN IF NOT EXISTS media_type service_media_type NOT NULL DEFAULT 'ai_generated';
+
+ALTER TABLE public.services ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true;
+
+ALTER TABLE public.services ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.services ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.services ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
 
 SELECT attach_updated_date_trigger('services');
 
@@ -422,6 +612,70 @@ CREATE TABLE IF NOT EXISTS public.quotes (
   created_date          timestamptz NOT NULL DEFAULT now(),
   updated_date          timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS quote_number text NOT NULL UNIQUE DEFAULT next_quote_number();
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS client_type quote_client_type NOT NULL DEFAULT 'residential';
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS customer_id uuid REFERENCES public.customers(id) ON DELETE SET NULL;
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS customer_name text;
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS customer_email text;
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS customer_address text;
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS sales_agent_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS sales_agent_name text;
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS items jsonb NOT NULL DEFAULT '[]';
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS subtotal numeric(10,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS discount_type discount_type NOT NULL DEFAULT 'none';
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS discount_value numeric(10,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS discount_amount numeric(10,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS vat_rate numeric(5,2) NOT NULL DEFAULT 20;
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS vat_amount numeric(10,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS total numeric(10,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS notes text;
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS status quote_status NOT NULL DEFAULT 'draft';
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS valid_until timestamptz;
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS template_style quote_template NOT NULL DEFAULT 'modern';
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS sent_date timestamptz;
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS discount_email_sent boolean NOT NULL DEFAULT false;
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS followup_day7_sent boolean NOT NULL DEFAULT false;
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS followup_day14_sent boolean NOT NULL DEFAULT false;
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS reminder_date timestamptz;
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS reminder_time text;
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS reminder_note text;
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS reminder_done boolean NOT NULL DEFAULT false;
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS images text[] NOT NULL DEFAULT '{}';
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.quotes ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
 
 CREATE INDEX IF NOT EXISTS idx_quotes_status ON public.quotes(status);
 
@@ -466,6 +720,60 @@ CREATE TABLE IF NOT EXISTS public.invoices (
   created_date     timestamptz NOT NULL DEFAULT now(),
   updated_date     timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS invoice_number text NOT NULL UNIQUE DEFAULT next_invoice_number();
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS quote_id uuid REFERENCES public.quotes(id) ON DELETE SET NULL;
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS customer_id uuid REFERENCES public.customers(id) ON DELETE SET NULL;
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS customer_name text;
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS customer_email text;
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS customer_address text;
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS invoice_type invoice_type NOT NULL DEFAULT 'standard';
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS billed_amount numeric(10,2);
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS items jsonb NOT NULL DEFAULT '[]';
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS subtotal numeric(10,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS discount_type discount_type NOT NULL DEFAULT 'none';
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS discount_value numeric(10,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS discount_amount numeric(10,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS vat_rate numeric(5,2) NOT NULL DEFAULT 20;
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS vat_amount numeric(10,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS total numeric(10,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS amount_paid numeric(10,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS notes text;
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS status invoice_status NOT NULL DEFAULT 'draft';
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS due_date timestamptz;
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS sent_date timestamptz;
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS paid_date timestamptz;
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS payment_method payment_method;
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS attachments jsonb NOT NULL DEFAULT '[]';
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
 
 CREATE INDEX IF NOT EXISTS idx_invoices_status ON public.invoices(status);
 
@@ -519,6 +827,80 @@ CREATE TABLE IF NOT EXISTS public.jobs (
   updated_date          timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS title text;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS customer_id uuid REFERENCES public.customers(id) ON DELETE SET NULL;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS customer_name text;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS customer_email text;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS quote_id uuid REFERENCES public.quotes(id) ON DELETE SET NULL;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS address text;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS description text;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS start_date timestamptz;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS end_date timestamptz;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS start_time text;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS end_time text;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS assigned_vehicle text;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS assigned_team text;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS assigned_contractor_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS message_token text NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(16), 'hex');
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS client_photos jsonb NOT NULL DEFAULT '[]';
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS status job_status NOT NULL DEFAULT 'scheduled';
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS priority job_priority NOT NULL DEFAULT 'medium';
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS total_value numeric(10,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS notes text;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS color text NOT NULL DEFAULT '#f97316';
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS reminder_24h_sent boolean NOT NULL DEFAULT false;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS completed_date timestamptz;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS materials_used jsonb NOT NULL DEFAULT '[]';
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS checklist jsonb NOT NULL DEFAULT '[]';
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS check_in_time timestamptz;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS check_out_time timestamptz;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS check_in_lat double precision;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS check_in_lng double precision;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS arrival_confirmed boolean NOT NULL DEFAULT false;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS arrival_distance_m integer;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS arrival_note text;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS site_lat double precision;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS site_lng double precision;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
+
 CREATE INDEX IF NOT EXISTS idx_jobs_start_date ON public.jobs(start_date);
 
 CREATE INDEX IF NOT EXISTS idx_jobs_status ON public.jobs(status);
@@ -554,6 +936,48 @@ CREATE TABLE IF NOT EXISTS public.vehicles (
   updated_date          timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS name text;
+
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS registration text;
+
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS make text;
+
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS model text;
+
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS type vehicle_type NOT NULL DEFAULT 'van';
+
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS driver text;
+
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS status vehicle_status NOT NULL DEFAULT 'idle';
+
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS current_lat double precision;
+
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS current_lng double precision;
+
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS current_location_name text;
+
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS speed numeric(6,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS last_updated timestamptz;
+
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS assigned_job uuid REFERENCES public.jobs(id) ON DELETE SET NULL;
+
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS fuel_level integer NOT NULL DEFAULT 100;
+
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS mileage integer NOT NULL DEFAULT 0;
+
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS service_due_date timestamptz;
+
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS mot_due_date timestamptz;
+
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS insurance_expiry_date timestamptz;
+
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
+
 SELECT attach_updated_date_trigger('vehicles');
 
 ALTER TABLE public.vehicles ENABLE ROW LEVEL SECURITY;
@@ -572,6 +996,28 @@ CREATE TABLE IF NOT EXISTS public.attendance (
   created_date    timestamptz NOT NULL DEFAULT now(),
   updated_date    timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.attendance ADD COLUMN IF NOT EXISTS operative_name text;
+
+ALTER TABLE public.attendance ADD COLUMN IF NOT EXISTS operative_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.attendance ADD COLUMN IF NOT EXISTS attendance_date date;
+
+ALTER TABLE public.attendance ADD COLUMN IF NOT EXISTS clock_in_time timestamptz;
+
+ALTER TABLE public.attendance ADD COLUMN IF NOT EXISTS clock_out_time timestamptz;
+
+ALTER TABLE public.attendance ADD COLUMN IF NOT EXISTS hours_worked numeric(5,2);
+
+ALTER TABLE public.attendance ADD COLUMN IF NOT EXISTS status attendance_status NOT NULL DEFAULT 'present';
+
+ALTER TABLE public.attendance ADD COLUMN IF NOT EXISTS notes text;
+
+ALTER TABLE public.attendance ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.attendance ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.attendance ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
 
 CREATE INDEX IF NOT EXISTS idx_attendance_operative_date ON public.attendance(operative_id, attendance_date);
 
@@ -601,6 +1047,42 @@ CREATE TABLE IF NOT EXISTS public.contractors (
   updated_date             timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.contractors ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.contractors ADD COLUMN IF NOT EXISTS company_name text;
+
+ALTER TABLE public.contractors ADD COLUMN IF NOT EXISTS contact_name text;
+
+ALTER TABLE public.contractors ADD COLUMN IF NOT EXISTS email text;
+
+ALTER TABLE public.contractors ADD COLUMN IF NOT EXISTS phone text;
+
+ALTER TABLE public.contractors ADD COLUMN IF NOT EXISTS address_line1 text;
+
+ALTER TABLE public.contractors ADD COLUMN IF NOT EXISTS address_line2 text;
+
+ALTER TABLE public.contractors ADD COLUMN IF NOT EXISTS address_city text;
+
+ALTER TABLE public.contractors ADD COLUMN IF NOT EXISTS address_postcode text;
+
+ALTER TABLE public.contractors ADD COLUMN IF NOT EXISTS bank_account_name text;
+
+ALTER TABLE public.contractors ADD COLUMN IF NOT EXISTS bank_sort_code text;
+
+ALTER TABLE public.contractors ADD COLUMN IF NOT EXISTS bank_account_number text;
+
+ALTER TABLE public.contractors ADD COLUMN IF NOT EXISTS vat_registered boolean NOT NULL DEFAULT false;
+
+ALTER TABLE public.contractors ADD COLUMN IF NOT EXISTS vat_number text;
+
+ALTER TABLE public.contractors ADD COLUMN IF NOT EXISTS registration_completed boolean NOT NULL DEFAULT false;
+
+ALTER TABLE public.contractors ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.contractors ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.contractors ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
+
 CREATE INDEX IF NOT EXISTS idx_contractors_user ON public.contractors(user_id);
 
 CREATE INDEX IF NOT EXISTS idx_contractors_email ON public.contractors(email);
@@ -628,6 +1110,36 @@ CREATE TABLE IF NOT EXISTS public.subcontractors (
   updated_date        timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.subcontractors ADD COLUMN IF NOT EXISTS name text;
+
+ALTER TABLE public.subcontractors ADD COLUMN IF NOT EXISTS company_name text;
+
+ALTER TABLE public.subcontractors ADD COLUMN IF NOT EXISTS email text;
+
+ALTER TABLE public.subcontractors ADD COLUMN IF NOT EXISTS phone text;
+
+ALTER TABLE public.subcontractors ADD COLUMN IF NOT EXISTS covered_areas text[] NOT NULL DEFAULT '{}';
+
+ALTER TABLE public.subcontractors ADD COLUMN IF NOT EXISTS service_categories text[] NOT NULL DEFAULT '{}';
+
+ALTER TABLE public.subcontractors ADD COLUMN IF NOT EXISTS starting_postcode text;
+
+ALTER TABLE public.subcontractors ADD COLUMN IF NOT EXISTS max_radius_miles integer;
+
+ALTER TABLE public.subcontractors ADD COLUMN IF NOT EXISTS status subcontractor_status NOT NULL DEFAULT 'pending';
+
+ALTER TABLE public.subcontractors ADD COLUMN IF NOT EXISTS rating numeric(3,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE public.subcontractors ADD COLUMN IF NOT EXISTS completed_jobs integer NOT NULL DEFAULT 0;
+
+ALTER TABLE public.subcontractors ADD COLUMN IF NOT EXISTS notes text;
+
+ALTER TABLE public.subcontractors ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.subcontractors ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.subcontractors ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
+
 SELECT attach_updated_date_trigger('subcontractors');
 
 ALTER TABLE public.subcontractors ENABLE ROW LEVEL SECURITY;
@@ -650,6 +1162,36 @@ CREATE TABLE IF NOT EXISTS public.job_bids (
   created_date              timestamptz NOT NULL DEFAULT now(),
   updated_date              timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.job_bids ADD COLUMN IF NOT EXISTS job_id uuid REFERENCES public.jobs(id) ON DELETE CASCADE;
+
+ALTER TABLE public.job_bids ADD COLUMN IF NOT EXISTS job_title text;
+
+ALTER TABLE public.job_bids ADD COLUMN IF NOT EXISTS job_start_date timestamptz;
+
+ALTER TABLE public.job_bids ADD COLUMN IF NOT EXISTS job_address text;
+
+ALTER TABLE public.job_bids ADD COLUMN IF NOT EXISTS job_description text;
+
+ALTER TABLE public.job_bids ADD COLUMN IF NOT EXISTS subcontractor_id uuid REFERENCES public.subcontractors(id) ON DELETE CASCADE;
+
+ALTER TABLE public.job_bids ADD COLUMN IF NOT EXISTS subcontractor_name text;
+
+ALTER TABLE public.job_bids ADD COLUMN IF NOT EXISTS subcontractor_company text;
+
+ALTER TABLE public.job_bids ADD COLUMN IF NOT EXISTS amount numeric(10,2);
+
+ALTER TABLE public.job_bids ADD COLUMN IF NOT EXISTS estimated_days integer;
+
+ALTER TABLE public.job_bids ADD COLUMN IF NOT EXISTS notes text;
+
+ALTER TABLE public.job_bids ADD COLUMN IF NOT EXISTS status bid_status NOT NULL DEFAULT 'pending';
+
+ALTER TABLE public.job_bids ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.job_bids ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.job_bids ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
 
 CREATE INDEX IF NOT EXISTS idx_job_bids_job ON public.job_bids(job_id);
 
@@ -683,6 +1225,46 @@ CREATE TABLE IF NOT EXISTS public.job_completions (
   updated_date           timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.job_completions ADD COLUMN IF NOT EXISTS job_id uuid REFERENCES public.jobs(id) ON DELETE CASCADE;
+
+ALTER TABLE public.job_completions ADD COLUMN IF NOT EXISTS job_title text;
+
+ALTER TABLE public.job_completions ADD COLUMN IF NOT EXISTS customer_name text;
+
+ALTER TABLE public.job_completions ADD COLUMN IF NOT EXISTS customer_email text;
+
+ALTER TABLE public.job_completions ADD COLUMN IF NOT EXISTS customer_signature text;
+
+ALTER TABLE public.job_completions ADD COLUMN IF NOT EXISTS customer_satisfaction completion_satisfaction;
+
+ALTER TABLE public.job_completions ADD COLUMN IF NOT EXISTS customer_comments text;
+
+ALTER TABLE public.job_completions ADD COLUMN IF NOT EXISTS star_rating integer CHECK (star_rating BETWEEN 1 AND 5);
+
+ALTER TABLE public.job_completions ADD COLUMN IF NOT EXISTS feedback text;
+
+ALTER TABLE public.job_completions ADD COLUMN IF NOT EXISTS operative_name text;
+
+ALTER TABLE public.job_completions ADD COLUMN IF NOT EXISTS completed_date timestamptz;
+
+ALTER TABLE public.job_completions ADD COLUMN IF NOT EXISTS invoice_id uuid REFERENCES public.invoices(id) ON DELETE SET NULL;
+
+ALTER TABLE public.job_completions ADD COLUMN IF NOT EXISTS invoice_number text;
+
+ALTER TABLE public.job_completions ADD COLUMN IF NOT EXISTS photos text[] NOT NULL DEFAULT '{}';
+
+ALTER TABLE public.job_completions ADD COLUMN IF NOT EXISTS video_url text;
+
+ALTER TABLE public.job_completions ADD COLUMN IF NOT EXISTS customer_signed_off boolean NOT NULL DEFAULT false;
+
+ALTER TABLE public.job_completions ADD COLUMN IF NOT EXISTS thank_you_email_sent boolean NOT NULL DEFAULT false;
+
+ALTER TABLE public.job_completions ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.job_completions ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.job_completions ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
+
 CREATE INDEX IF NOT EXISTS idx_job_completions_job ON public.job_completions(job_id);
 
 SELECT attach_updated_date_trigger('job_completions');
@@ -701,6 +1283,24 @@ CREATE TABLE IF NOT EXISTS public.job_arrivals (
   created_date   timestamptz NOT NULL DEFAULT now(),
   updated_date   timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.job_arrivals ADD COLUMN IF NOT EXISTS job_id uuid REFERENCES public.jobs(id) ON DELETE CASCADE;
+
+ALTER TABLE public.job_arrivals ADD COLUMN IF NOT EXISTS vehicle_id uuid REFERENCES public.vehicles(id) ON DELETE SET NULL;
+
+ALTER TABLE public.job_arrivals ADD COLUMN IF NOT EXISTS arrival_lat double precision;
+
+ALTER TABLE public.job_arrivals ADD COLUMN IF NOT EXISTS arrival_lng double precision;
+
+ALTER TABLE public.job_arrivals ADD COLUMN IF NOT EXISTS arrival_time timestamptz;
+
+ALTER TABLE public.job_arrivals ADD COLUMN IF NOT EXISTS invoice_sent boolean NOT NULL DEFAULT false;
+
+ALTER TABLE public.job_arrivals ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.job_arrivals ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.job_arrivals ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
 
 CREATE INDEX IF NOT EXISTS idx_job_arrivals_job ON public.job_arrivals(job_id);
 
@@ -722,6 +1322,26 @@ CREATE TABLE IF NOT EXISTS public.job_chats (
   updated_date  timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.job_chats ADD COLUMN IF NOT EXISTS job_id uuid REFERENCES public.jobs(id) ON DELETE CASCADE;
+
+ALTER TABLE public.job_chats ADD COLUMN IF NOT EXISTS job_title text;
+
+ALTER TABLE public.job_chats ADD COLUMN IF NOT EXISTS job_date timestamptz;
+
+ALTER TABLE public.job_chats ADD COLUMN IF NOT EXISTS sender_name text;
+
+ALTER TABLE public.job_chats ADD COLUMN IF NOT EXISTS sender_role job_chat_role;
+
+ALTER TABLE public.job_chats ADD COLUMN IF NOT EXISTS message text;
+
+ALTER TABLE public.job_chats ADD COLUMN IF NOT EXISTS is_read boolean NOT NULL DEFAULT false;
+
+ALTER TABLE public.job_chats ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.job_chats ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.job_chats ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
+
 CREATE INDEX IF NOT EXISTS idx_job_chats_job ON public.job_chats(job_id);
 
 SELECT attach_updated_date_trigger('job_chats');
@@ -740,6 +1360,24 @@ CREATE TABLE IF NOT EXISTS public.job_messages (
   created_date                timestamptz NOT NULL DEFAULT now(),
   updated_date                timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.job_messages ADD COLUMN IF NOT EXISTS job_id uuid REFERENCES public.jobs(id) ON DELETE CASCADE;
+
+ALTER TABLE public.job_messages ADD COLUMN IF NOT EXISTS job_title text;
+
+ALTER TABLE public.job_messages ADD COLUMN IF NOT EXISTS sender_role job_message_role;
+
+ALTER TABLE public.job_messages ADD COLUMN IF NOT EXISTS sender_name text;
+
+ALTER TABLE public.job_messages ADD COLUMN IF NOT EXISTS body text;
+
+ALTER TABLE public.job_messages ADD COLUMN IF NOT EXISTS assigned_contractor_user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.job_messages ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.job_messages ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.job_messages ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
 
 CREATE INDEX IF NOT EXISTS idx_job_messages_job ON public.job_messages(job_id);
 
@@ -764,6 +1402,32 @@ CREATE TABLE IF NOT EXISTS public.reschedule_requests (
   updated_date   timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.reschedule_requests ADD COLUMN IF NOT EXISTS job_id uuid REFERENCES public.jobs(id) ON DELETE CASCADE;
+
+ALTER TABLE public.reschedule_requests ADD COLUMN IF NOT EXISTS customer_email text;
+
+ALTER TABLE public.reschedule_requests ADD COLUMN IF NOT EXISTS customer_name text;
+
+ALTER TABLE public.reschedule_requests ADD COLUMN IF NOT EXISTS job_title text;
+
+ALTER TABLE public.reschedule_requests ADD COLUMN IF NOT EXISTS original_date timestamptz;
+
+ALTER TABLE public.reschedule_requests ADD COLUMN IF NOT EXISTS requested_date timestamptz;
+
+ALTER TABLE public.reschedule_requests ADD COLUMN IF NOT EXISTS reason text;
+
+ALTER TABLE public.reschedule_requests ADD COLUMN IF NOT EXISTS status reschedule_status NOT NULL DEFAULT 'pending';
+
+ALTER TABLE public.reschedule_requests ADD COLUMN IF NOT EXISTS notes text;
+
+ALTER TABLE public.reschedule_requests ADD COLUMN IF NOT EXISTS request_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.reschedule_requests ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.reschedule_requests ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.reschedule_requests ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
+
 CREATE INDEX IF NOT EXISTS idx_reschedule_job ON public.reschedule_requests(job_id);
 
 SELECT attach_updated_date_trigger('reschedule_requests');
@@ -786,6 +1450,32 @@ CREATE TABLE IF NOT EXISTS public.extra_work_requests (
   created_date          timestamptz NOT NULL DEFAULT now(),
   updated_date          timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.extra_work_requests ADD COLUMN IF NOT EXISTS job_id uuid REFERENCES public.jobs(id) ON DELETE CASCADE;
+
+ALTER TABLE public.extra_work_requests ADD COLUMN IF NOT EXISTS job_title text;
+
+ALTER TABLE public.extra_work_requests ADD COLUMN IF NOT EXISTS contractor_id uuid REFERENCES public.contractors(id) ON DELETE CASCADE;
+
+ALTER TABLE public.extra_work_requests ADD COLUMN IF NOT EXISTS contractor_user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.extra_work_requests ADD COLUMN IF NOT EXISTS contractor_name text;
+
+ALTER TABLE public.extra_work_requests ADD COLUMN IF NOT EXISTS description text;
+
+ALTER TABLE public.extra_work_requests ADD COLUMN IF NOT EXISTS amount numeric(10,2);
+
+ALTER TABLE public.extra_work_requests ADD COLUMN IF NOT EXISTS status extra_work_status NOT NULL DEFAULT 'pending';
+
+ALTER TABLE public.extra_work_requests ADD COLUMN IF NOT EXISTS decided_at timestamptz;
+
+ALTER TABLE public.extra_work_requests ADD COLUMN IF NOT EXISTS decided_by uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.extra_work_requests ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.extra_work_requests ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.extra_work_requests ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
 
 CREATE INDEX IF NOT EXISTS idx_extra_work_job ON public.extra_work_requests(job_id);
 
@@ -810,6 +1500,28 @@ CREATE TABLE IF NOT EXISTS public.receipts (
   updated_date     timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.receipts ADD COLUMN IF NOT EXISTS job_id uuid REFERENCES public.jobs(id) ON DELETE CASCADE;
+
+ALTER TABLE public.receipts ADD COLUMN IF NOT EXISTS operative_name text;
+
+ALTER TABLE public.receipts ADD COLUMN IF NOT EXISTS photo_url text;
+
+ALTER TABLE public.receipts ADD COLUMN IF NOT EXISTS amount_gbp numeric(10,2);
+
+ALTER TABLE public.receipts ADD COLUMN IF NOT EXISTS item_description text;
+
+ALTER TABLE public.receipts ADD COLUMN IF NOT EXISTS purchase_date timestamptz;
+
+ALTER TABLE public.receipts ADD COLUMN IF NOT EXISTS notes text;
+
+ALTER TABLE public.receipts ADD COLUMN IF NOT EXISTS status receipt_status NOT NULL DEFAULT 'pending';
+
+ALTER TABLE public.receipts ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.receipts ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.receipts ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
+
 CREATE INDEX IF NOT EXISTS idx_receipts_job ON public.receipts(job_id);
 
 SELECT attach_updated_date_trigger('receipts');
@@ -829,6 +1541,26 @@ CREATE TABLE IF NOT EXISTS public.internal_chats (
   created_date  timestamptz NOT NULL DEFAULT now(),
   updated_date  timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.internal_chats ADD COLUMN IF NOT EXISTS channel text;
+
+ALTER TABLE public.internal_chats ADD COLUMN IF NOT EXISTS sender_id uuid REFERENCES auth.users(id) ON DELETE CASCADE;
+
+ALTER TABLE public.internal_chats ADD COLUMN IF NOT EXISTS sender_name text;
+
+ALTER TABLE public.internal_chats ADD COLUMN IF NOT EXISTS sender_role text;
+
+ALTER TABLE public.internal_chats ADD COLUMN IF NOT EXISTS sender_avatar text;
+
+ALTER TABLE public.internal_chats ADD COLUMN IF NOT EXISTS message text;
+
+ALTER TABLE public.internal_chats ADD COLUMN IF NOT EXISTS is_read_by text[] NOT NULL DEFAULT '{}';
+
+ALTER TABLE public.internal_chats ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.internal_chats ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.internal_chats ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
 
 CREATE INDEX IF NOT EXISTS idx_internal_chats_channel ON public.internal_chats(channel, created_date);
 
@@ -853,6 +1585,32 @@ CREATE TABLE IF NOT EXISTS public.messages (
   updated_date    timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS job_id uuid REFERENCES public.jobs(id) ON DELETE SET NULL;
+
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS quote_id uuid REFERENCES public.quotes(id) ON DELETE SET NULL;
+
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS customer_email text;
+
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS customer_name text;
+
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS subject text;
+
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS content text;
+
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS sender_type message_sender_type;
+
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS is_read boolean NOT NULL DEFAULT false;
+
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS status message_status NOT NULL DEFAULT 'open';
+
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS conversation_id uuid;
+
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
+
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON public.messages(conversation_id);
 
 SELECT attach_updated_date_trigger('messages');
@@ -873,6 +1631,26 @@ CREATE TABLE IF NOT EXISTS public.staff_messages (
   updated_date  timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.staff_messages ADD COLUMN IF NOT EXISTS from_email text;
+
+ALTER TABLE public.staff_messages ADD COLUMN IF NOT EXISTS from_name text;
+
+ALTER TABLE public.staff_messages ADD COLUMN IF NOT EXISTS to_email text;
+
+ALTER TABLE public.staff_messages ADD COLUMN IF NOT EXISTS subject text;
+
+ALTER TABLE public.staff_messages ADD COLUMN IF NOT EXISTS body text;
+
+ALTER TABLE public.staff_messages ADD COLUMN IF NOT EXISTS is_read boolean NOT NULL DEFAULT false;
+
+ALTER TABLE public.staff_messages ADD COLUMN IF NOT EXISTS thread_id uuid;
+
+ALTER TABLE public.staff_messages ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.staff_messages ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.staff_messages ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
+
 SELECT attach_updated_date_trigger('staff_messages');
 
 ALTER TABLE public.staff_messages ENABLE ROW LEVEL SECURITY;
@@ -891,6 +1669,26 @@ CREATE TABLE IF NOT EXISTS public.email_sequences (
   updated_date   timestamptz NOT NULL DEFAULT now(),
   UNIQUE (sequence_type, step)
 );
+
+ALTER TABLE public.email_sequences ADD COLUMN IF NOT EXISTS sequence_type email_sequence_type;
+
+ALTER TABLE public.email_sequences ADD COLUMN IF NOT EXISTS step integer;
+
+ALTER TABLE public.email_sequences ADD COLUMN IF NOT EXISTS delay_days integer;
+
+ALTER TABLE public.email_sequences ADD COLUMN IF NOT EXISTS subject text;
+
+ALTER TABLE public.email_sequences ADD COLUMN IF NOT EXISTS body text;
+
+ALTER TABLE public.email_sequences ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true;
+
+ALTER TABLE public.email_sequences ADD COLUMN IF NOT EXISTS label text;
+
+ALTER TABLE public.email_sequences ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.email_sequences ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.email_sequences ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
 
 SELECT attach_updated_date_trigger('email_sequences');
 
@@ -918,6 +1716,44 @@ CREATE TABLE IF NOT EXISTS public.sequence_email_logs (
   created_date       timestamptz NOT NULL DEFAULT now(),
   updated_date       timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.sequence_email_logs ADD COLUMN IF NOT EXISTS sequence_type email_sequence_type;
+
+ALTER TABLE public.sequence_email_logs ADD COLUMN IF NOT EXISTS step_number integer;
+
+ALTER TABLE public.sequence_email_logs ADD COLUMN IF NOT EXISTS step_label text;
+
+ALTER TABLE public.sequence_email_logs ADD COLUMN IF NOT EXISTS recipient_email text;
+
+ALTER TABLE public.sequence_email_logs ADD COLUMN IF NOT EXISTS recipient_name text;
+
+ALTER TABLE public.sequence_email_logs ADD COLUMN IF NOT EXISTS related_id uuid;
+
+ALTER TABLE public.sequence_email_logs ADD COLUMN IF NOT EXISTS related_type related_type;
+
+ALTER TABLE public.sequence_email_logs ADD COLUMN IF NOT EXISTS subject text;
+
+ALTER TABLE public.sequence_email_logs ADD COLUMN IF NOT EXISTS sent_date timestamptz;
+
+ALTER TABLE public.sequence_email_logs ADD COLUMN IF NOT EXISTS resend_message_id text;
+
+ALTER TABLE public.sequence_email_logs ADD COLUMN IF NOT EXISTS opened boolean NOT NULL DEFAULT false;
+
+ALTER TABLE public.sequence_email_logs ADD COLUMN IF NOT EXISTS opened_date timestamptz;
+
+ALTER TABLE public.sequence_email_logs ADD COLUMN IF NOT EXISTS clicked boolean NOT NULL DEFAULT false;
+
+ALTER TABLE public.sequence_email_logs ADD COLUMN IF NOT EXISTS clicked_date timestamptz;
+
+ALTER TABLE public.sequence_email_logs ADD COLUMN IF NOT EXISTS replied boolean NOT NULL DEFAULT false;
+
+ALTER TABLE public.sequence_email_logs ADD COLUMN IF NOT EXISTS replied_date timestamptz;
+
+ALTER TABLE public.sequence_email_logs ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.sequence_email_logs ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.sequence_email_logs ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
 
 CREATE INDEX IF NOT EXISTS idx_seq_logs_related ON public.sequence_email_logs(related_id);
 
@@ -948,6 +1784,40 @@ CREATE TABLE IF NOT EXISTS public.alerts (
   updated_date     timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.alerts ADD COLUMN IF NOT EXISTS alert_type alert_type;
+
+ALTER TABLE public.alerts ADD COLUMN IF NOT EXISTS title text;
+
+ALTER TABLE public.alerts ADD COLUMN IF NOT EXISTS message text;
+
+ALTER TABLE public.alerts ADD COLUMN IF NOT EXISTS job_id uuid REFERENCES public.jobs(id) ON DELETE SET NULL;
+
+ALTER TABLE public.alerts ADD COLUMN IF NOT EXISTS customer_id uuid REFERENCES public.customers(id) ON DELETE SET NULL;
+
+ALTER TABLE public.alerts ADD COLUMN IF NOT EXISTS customer_name text;
+
+ALTER TABLE public.alerts ADD COLUMN IF NOT EXISTS customer_email text;
+
+ALTER TABLE public.alerts ADD COLUMN IF NOT EXISTS feedback_id uuid;
+
+ALTER TABLE public.alerts ADD COLUMN IF NOT EXISTS star_rating integer;
+
+ALTER TABLE public.alerts ADD COLUMN IF NOT EXISTS feedback_text text;
+
+ALTER TABLE public.alerts ADD COLUMN IF NOT EXISTS status alert_status NOT NULL DEFAULT 'active';
+
+ALTER TABLE public.alerts ADD COLUMN IF NOT EXISTS resolved_by uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.alerts ADD COLUMN IF NOT EXISTS resolved_date timestamptz;
+
+ALTER TABLE public.alerts ADD COLUMN IF NOT EXISTS resolution_notes text;
+
+ALTER TABLE public.alerts ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.alerts ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.alerts ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
+
 CREATE INDEX IF NOT EXISTS idx_alerts_status_type ON public.alerts(status, alert_type);
 
 SELECT attach_updated_date_trigger('alerts');
@@ -969,6 +1839,30 @@ CREATE TABLE IF NOT EXISTS public.audit_logs (
   created_date   timestamptz NOT NULL DEFAULT now(),
   updated_date   timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.audit_logs ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.audit_logs ADD COLUMN IF NOT EXISTS user_name text;
+
+ALTER TABLE public.audit_logs ADD COLUMN IF NOT EXISTS user_email text;
+
+ALTER TABLE public.audit_logs ADD COLUMN IF NOT EXISTS action audit_action;
+
+ALTER TABLE public.audit_logs ADD COLUMN IF NOT EXISTS entity_type text;
+
+ALTER TABLE public.audit_logs ADD COLUMN IF NOT EXISTS entity_id uuid;
+
+ALTER TABLE public.audit_logs ADD COLUMN IF NOT EXISTS entity_name text;
+
+ALTER TABLE public.audit_logs ADD COLUMN IF NOT EXISTS details text;
+
+ALTER TABLE public.audit_logs ADD COLUMN IF NOT EXISTS changed_fields text[] NOT NULL DEFAULT '{}';
+
+ALTER TABLE public.audit_logs ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.audit_logs ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.audit_logs ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
 
 CREATE INDEX IF NOT EXISTS idx_audit_entity ON public.audit_logs(entity_type, entity_id);
 
@@ -993,6 +1887,28 @@ CREATE TABLE IF NOT EXISTS public.bonus_settings (
   updated_date               timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.bonus_settings ADD COLUMN IF NOT EXISTS tier_name text;
+
+ALTER TABLE public.bonus_settings ADD COLUMN IF NOT EXISTS min_star_rating numeric(3,2);
+
+ALTER TABLE public.bonus_settings ADD COLUMN IF NOT EXISTS min_jobs_completed integer;
+
+ALTER TABLE public.bonus_settings ADD COLUMN IF NOT EXISTS max_completion_days integer;
+
+ALTER TABLE public.bonus_settings ADD COLUMN IF NOT EXISTS min_attendance_percentage numeric(5,2) CHECK (min_attendance_percentage BETWEEN 0 AND 100);
+
+ALTER TABLE public.bonus_settings ADD COLUMN IF NOT EXISTS bonus_amount_gbp numeric(10,2);
+
+ALTER TABLE public.bonus_settings ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true;
+
+ALTER TABLE public.bonus_settings ADD COLUMN IF NOT EXISTS priority integer NOT NULL DEFAULT 0;
+
+ALTER TABLE public.bonus_settings ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.bonus_settings ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.bonus_settings ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
+
 SELECT attach_updated_date_trigger('bonus_settings');
 
 ALTER TABLE public.bonus_settings ENABLE ROW LEVEL SECURITY;
@@ -1006,6 +1922,18 @@ CREATE TABLE IF NOT EXISTS public.commission_settings (
   created_date         timestamptz NOT NULL DEFAULT now(),
   updated_date         timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.commission_settings ADD COLUMN IF NOT EXISTS rate_percent numeric(5,2) NOT NULL DEFAULT 5;
+
+ALTER TABLE public.commission_settings ADD COLUMN IF NOT EXISTS qualifying_statuses text[] NOT NULL DEFAULT '{accepted}';
+
+ALTER TABLE public.commission_settings ADD COLUMN IF NOT EXISTS period commission_period NOT NULL DEFAULT 'weekly';
+
+ALTER TABLE public.commission_settings ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.commission_settings ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.commission_settings ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
 
 SELECT attach_updated_date_trigger('commission_settings');
 
@@ -1028,6 +1956,32 @@ CREATE TABLE IF NOT EXISTS public.operative_bonuses (
   updated_date          timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.operative_bonuses ADD COLUMN IF NOT EXISTS operative_id uuid REFERENCES auth.users(id) ON DELETE CASCADE;
+
+ALTER TABLE public.operative_bonuses ADD COLUMN IF NOT EXISTS operative_name text;
+
+ALTER TABLE public.operative_bonuses ADD COLUMN IF NOT EXISTS month_year text;
+
+ALTER TABLE public.operative_bonuses ADD COLUMN IF NOT EXISTS base_bonus numeric(10,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE public.operative_bonuses ADD COLUMN IF NOT EXISTS star_rating_bonus numeric(10,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE public.operative_bonuses ADD COLUMN IF NOT EXISTS job_performance_bonus numeric(10,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE public.operative_bonuses ADD COLUMN IF NOT EXISTS attendance_bonus numeric(10,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE public.operative_bonuses ADD COLUMN IF NOT EXISTS total_bonus numeric(10,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE public.operative_bonuses ADD COLUMN IF NOT EXISTS status bonus_status NOT NULL DEFAULT 'pending';
+
+ALTER TABLE public.operative_bonuses ADD COLUMN IF NOT EXISTS notes text;
+
+ALTER TABLE public.operative_bonuses ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.operative_bonuses ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.operative_bonuses ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
+
 CREATE INDEX IF NOT EXISTS idx_op_bonuses_operative_month ON public.operative_bonuses(operative_id, month_year);
 
 SELECT attach_updated_date_trigger('operative_bonuses');
@@ -1044,6 +1998,20 @@ CREATE TABLE IF NOT EXISTS public.prize_settings (
   created_date      timestamptz NOT NULL DEFAULT now(),
   updated_date      timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.prize_settings ADD COLUMN IF NOT EXISTS wheel_type prize_wheel_type;
+
+ALTER TABLE public.prize_settings ADD COLUMN IF NOT EXISTS prize_description text;
+
+ALTER TABLE public.prize_settings ADD COLUMN IF NOT EXISTS prize_emoji text;
+
+ALTER TABLE public.prize_settings ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true;
+
+ALTER TABLE public.prize_settings ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.prize_settings ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.prize_settings ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
 
 SELECT attach_updated_date_trigger('prize_settings');
 
@@ -1062,6 +2030,26 @@ CREATE TABLE IF NOT EXISTS public.feedbacks (
   created_date   timestamptz NOT NULL DEFAULT now(),
   updated_date   timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.feedbacks ADD COLUMN IF NOT EXISTS customer_name text;
+
+ALTER TABLE public.feedbacks ADD COLUMN IF NOT EXISTS customer_email text;
+
+ALTER TABLE public.feedbacks ADD COLUMN IF NOT EXISTS job_id uuid REFERENCES public.jobs(id) ON DELETE SET NULL;
+
+ALTER TABLE public.feedbacks ADD COLUMN IF NOT EXISTS job_title text;
+
+ALTER TABLE public.feedbacks ADD COLUMN IF NOT EXISTS star_rating integer CHECK (star_rating BETWEEN 1 AND 5);
+
+ALTER TABLE public.feedbacks ADD COLUMN IF NOT EXISTS feedback_text text;
+
+ALTER TABLE public.feedbacks ADD COLUMN IF NOT EXISTS submitted_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.feedbacks ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.feedbacks ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.feedbacks ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
 
 SELECT attach_updated_date_trigger('feedbacks');
 
@@ -1082,6 +2070,26 @@ CREATE TABLE IF NOT EXISTS public.integration_connections (
   updated_date      timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.integration_connections ADD COLUMN IF NOT EXISTS integration_key text UNIQUE;
+
+ALTER TABLE public.integration_connections ADD COLUMN IF NOT EXISTS integration_name text;
+
+ALTER TABLE public.integration_connections ADD COLUMN IF NOT EXISTS category integration_category;
+
+ALTER TABLE public.integration_connections ADD COLUMN IF NOT EXISTS is_connected boolean NOT NULL DEFAULT false;
+
+ALTER TABLE public.integration_connections ADD COLUMN IF NOT EXISTS credentials jsonb;
+
+ALTER TABLE public.integration_connections ADD COLUMN IF NOT EXISTS connected_date timestamptz;
+
+ALTER TABLE public.integration_connections ADD COLUMN IF NOT EXISTS disconnected_date timestamptz;
+
+ALTER TABLE public.integration_connections ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.integration_connections ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.integration_connections ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
+
 SELECT attach_updated_date_trigger('integration_connections');
 
 ALTER TABLE public.integration_connections ENABLE ROW LEVEL SECURITY;
@@ -1097,6 +2105,22 @@ CREATE TABLE IF NOT EXISTS public.invited_users (
   created_date   timestamptz NOT NULL DEFAULT now(),
   updated_date   timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.invited_users ADD COLUMN IF NOT EXISTS name text;
+
+ALTER TABLE public.invited_users ADD COLUMN IF NOT EXISTS email text;
+
+ALTER TABLE public.invited_users ADD COLUMN IF NOT EXISTS department invited_dept;
+
+ALTER TABLE public.invited_users ADD COLUMN IF NOT EXISTS role text;
+
+ALTER TABLE public.invited_users ADD COLUMN IF NOT EXISTS status invited_status NOT NULL DEFAULT 'pending';
+
+ALTER TABLE public.invited_users ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.invited_users ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.invited_users ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
 
 SELECT attach_updated_date_trigger('invited_users');
 
@@ -1114,6 +2138,24 @@ CREATE TABLE IF NOT EXISTS public.signup_requests (
   created_date     timestamptz NOT NULL DEFAULT now(),
   updated_date     timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.signup_requests ADD COLUMN IF NOT EXISTS operative_name text;
+
+ALTER TABLE public.signup_requests ADD COLUMN IF NOT EXISTS email text;
+
+ALTER TABLE public.signup_requests ADD COLUMN IF NOT EXISTS status signup_status NOT NULL DEFAULT 'pending';
+
+ALTER TABLE public.signup_requests ADD COLUMN IF NOT EXISTS rejection_reason text;
+
+ALTER TABLE public.signup_requests ADD COLUMN IF NOT EXISTS approved_by uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.signup_requests ADD COLUMN IF NOT EXISTS approved_date timestamptz;
+
+ALTER TABLE public.signup_requests ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.signup_requests ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.signup_requests ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
 
 SELECT attach_updated_date_trigger('signup_requests');
 
@@ -1133,6 +2175,28 @@ CREATE TABLE IF NOT EXISTS public.website_domains (
   created_date          timestamptz NOT NULL DEFAULT now(),
   updated_date          timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.website_domains ADD COLUMN IF NOT EXISTS domain_name text;
+
+ALTER TABLE public.website_domains ADD COLUMN IF NOT EXISTS domain_url text;
+
+ALTER TABLE public.website_domains ADD COLUMN IF NOT EXISTS status website_status NOT NULL DEFAULT 'active';
+
+ALTER TABLE public.website_domains ADD COLUMN IF NOT EXISTS google_analytics_id text;
+
+ALTER TABLE public.website_domains ADD COLUMN IF NOT EXISTS seo_focus_keywords text[] NOT NULL DEFAULT '{}';
+
+ALTER TABLE public.website_domains ADD COLUMN IF NOT EXISTS monthly_traffic_goal integer;
+
+ALTER TABLE public.website_domains ADD COLUMN IF NOT EXISTS notes text;
+
+ALTER TABLE public.website_domains ADD COLUMN IF NOT EXISTS created_date_domain timestamptz;
+
+ALTER TABLE public.website_domains ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.website_domains ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.website_domains ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
 
 SELECT attach_updated_date_trigger('website_domains');
 
@@ -1750,6 +2814,46 @@ CREATE TABLE IF NOT EXISTS public.commission_invoices (
   updated_date      timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.commission_invoices ADD COLUMN IF NOT EXISTS invoice_number text UNIQUE;
+
+ALTER TABLE public.commission_invoices ADD COLUMN IF NOT EXISTS sales_agent_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.commission_invoices ADD COLUMN IF NOT EXISTS sales_agent_name text;
+
+ALTER TABLE public.commission_invoices ADD COLUMN IF NOT EXISTS sales_agent_email text;
+
+ALTER TABLE public.commission_invoices ADD COLUMN IF NOT EXISTS period_start date;
+
+ALTER TABLE public.commission_invoices ADD COLUMN IF NOT EXISTS period_end date;
+
+ALTER TABLE public.commission_invoices ADD COLUMN IF NOT EXISTS quote_ids uuid[] NOT NULL DEFAULT '{}';
+
+ALTER TABLE public.commission_invoices ADD COLUMN IF NOT EXISTS total_quotes integer NOT NULL DEFAULT 0;
+
+ALTER TABLE public.commission_invoices ADD COLUMN IF NOT EXISTS total_quote_value numeric(10,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE public.commission_invoices ADD COLUMN IF NOT EXISTS commission_rate numeric(5,2) NOT NULL DEFAULT 5;
+
+ALTER TABLE public.commission_invoices ADD COLUMN IF NOT EXISTS commission_amount numeric(10,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE public.commission_invoices ADD COLUMN IF NOT EXISTS vat_amount numeric(10,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE public.commission_invoices ADD COLUMN IF NOT EXISTS total_due numeric(10,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE public.commission_invoices ADD COLUMN IF NOT EXISTS status commission_invoice_status NOT NULL DEFAULT 'draft';
+
+ALTER TABLE public.commission_invoices ADD COLUMN IF NOT EXISTS sent_date timestamptz;
+
+ALTER TABLE public.commission_invoices ADD COLUMN IF NOT EXISTS paid_date timestamptz;
+
+ALTER TABLE public.commission_invoices ADD COLUMN IF NOT EXISTS notes text;
+
+ALTER TABLE public.commission_invoices ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.commission_invoices ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.commission_invoices ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
+
 CREATE INDEX IF NOT EXISTS idx_commission_invoices_agent ON public.commission_invoices(sales_agent_id);
 
 CREATE INDEX IF NOT EXISTS idx_commission_invoices_status ON public.commission_invoices(status);
@@ -1776,6 +2880,36 @@ CREATE TABLE IF NOT EXISTS public.reviews (
   created_date     timestamptz NOT NULL DEFAULT now(),
   updated_date     timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS customer_name text;
+
+ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS customer_email text;
+
+ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS job_id uuid REFERENCES public.jobs(id) ON DELETE SET NULL;
+
+ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS job_title text;
+
+ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS star_rating integer CHECK (star_rating BETWEEN 1 AND 5);
+
+ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS review_text text;
+
+ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'google';
+
+ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS google_review_id text;
+
+ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS review_url text;
+
+ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS reply_text text;
+
+ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS replied_at timestamptz;
+
+ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS is_published boolean NOT NULL DEFAULT true;
+
+ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS created_by_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS created_date timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS updated_date timestamptz NOT NULL DEFAULT now();
 
 CREATE INDEX IF NOT EXISTS idx_reviews_rating ON public.reviews(star_rating);
 
