@@ -71,20 +71,24 @@ All registered in `registry.ts` + `vercel.json` as 🔩 stubs — port by replac
 
 | Slug | Base44 fn | Schedule | Status |
 |---|---|---|---|
+| quote-discount-reminder | quoteDiscountReminder | 0 10 * * * | ✅ |
+| new-lead-sequence | newLeadSequenceRunner | 0 9 * * * | ✅ |
+| job-reminder-24h | send24HourJobReminder | 0 1 * * * | ✅ |
+| thank-you-emails | processDailyThankYouEmails | 0 10 * * * | ✅ |
+| overdue-invoice-reminder | sendOverdueInvoiceReminder | 0 3 * * * | ✅ |
+| commission-chaser | chaseCommissionInvoices | 0 4 * * * | ✅ |
 | quote-followup-1day | quoteFollowupReminder1Day | 0 2 * * * | 🔩 |
-| quote-discount-reminder | quoteDiscountReminder | 0 10 * * * | 🔩 |
-| new-lead-sequence | newLeadSequenceRunner | 0 9 * * * | 🔩 |
 | high-value-commercial-reminder | highValueCommercialReminder | 0 2 * * 1 | 🔩 |
-| job-reminder-24h | send24HourJobReminder | 0 1 * * * | 🔩 |
-| operative-job-summary-am | sendOperativeJobSummary | 0 5 * * * | 🔩 |
-| operative-job-summary-pm | sendOperativeJobSummary | 45 16 * * * | 🔩 |
-| thank-you-emails | processDailyThankYouEmails | 0 10 * * * | 🔩 |
+| operative-job-summary-am/pm | sendOperativeJobSummary | 0 5 / 45 16 * * * | 🔩 |
 | invoiced-job-reminder | sendInvoicedJobReminder | 0 2 * * * | 🔩 |
-| overdue-invoice-reminder | sendOverdueInvoiceReminder | 0 3 * * * | 🔩 |
-| commission-chaser | chaseCommissionInvoices | 0 4 * * * | 🔩 |
 | monthly-commissions | processMonthlyCommissions | 0 1 30 * * | 🔩 |
 | motivational-quote | sendMotivationalQuote | 0 8 * * 1-5 | 🔩 |
 | friday-spin-notification | sendFridaySpinNotification | 0 7 * * 5 | 🔩 |
+
+**Triggers done:** onLeadCreated (SMS+alert) · onQuoteCreated (customer) ·
+onFeedbackCreated (low-rating alert, DB-only) · onInvoicePaid (receipt) ·
+onJobCreated (booking confirmation). Remaining trigger dispatchers
+(onJobArrivalCreated, onJobChatCreated) await their source features being built.
 
 > ⚠️ **Vercel plan limit:** Hobby allows only a couple of cron jobs at daily
 > granularity. This full set needs **Vercel Pro**, or consolidate several jobs
