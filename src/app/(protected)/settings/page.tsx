@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Settings2, ClipboardList, Trophy, Users2 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/server";
+import { TestEmailButton } from "./test-email-button";
 
 const SECTIONS = [
   {
@@ -30,13 +30,20 @@ const SECTIONS = [
   },
 ];
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Settings</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Manage your BuildStream configuration</p>
       </div>
+
+      <TestEmailButton defaultTo={user?.email ?? ""} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {SECTIONS.map((s) => (
