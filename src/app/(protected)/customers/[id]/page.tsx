@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { CopyLinkButton } from "@/components/shared/copy-link-button";
 import type { Customer } from "@/lib/schemas/customers";
 
 const STATUS_VARIANT = {
@@ -61,12 +62,21 @@ export default async function CustomerDetailPage({
             <span className="text-sm text-muted-foreground capitalize">{customer.client_type}</span>
           </div>
         </div>
-        <Link
-          href={`/customers/${id}/edit`}
-          className={cn(buttonVariants({ variant: "outline" }))}
-        >
-          <Pencil className="size-4" /> Edit
-        </Link>
+        <div className="flex items-center gap-2">
+          {customer.portal_token && (
+            <CopyLinkButton
+              url={`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/portal/${customer.portal_token}`}
+              label="Portal link"
+              variant="outline"
+            />
+          )}
+          <Link
+            href={`/customers/${id}/edit`}
+            className={cn(buttonVariants({ variant: "outline" }))}
+          >
+            <Pencil className="size-4" /> Edit
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

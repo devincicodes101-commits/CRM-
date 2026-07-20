@@ -25,7 +25,9 @@ export const customerInsertSchema = z.object({
   average_rating: z.number().min(0).max(5).nullable().optional(),
 });
 
-export const customerSelectSchema = baseSelectSchema.extend(customerInsertSchema.shape);
+export const customerSelectSchema = baseSelectSchema
+  .extend(customerInsertSchema.shape)
+  .extend({ portal_token: z.string().optional() });
 export const customerUpdateSchema = customerInsertSchema.partial();
 
 export type CustomerReview = z.infer<typeof customerReviewSchema>;
