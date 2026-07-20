@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { CopyLinkButton } from "@/components/shared/copy-link-button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -43,13 +44,22 @@ export default async function ContractorsPage({
               : `${subcontractors?.length ?? 0} subcontractors`}
           </p>
         </div>
-        <Link
-          href={currentTab === "contractors" ? "/contractors/new" : "/contractors/subcontractors/new"}
-          className={cn(buttonVariants())}
-        >
-          <Plus className="size-4" />
-          {currentTab === "contractors" ? "New Contractor" : "New Subcontractor"}
-        </Link>
+        <div className="flex items-center gap-2">
+          {currentTab === "subcontractors" && (
+            <CopyLinkButton
+              url={`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/subcontractor`}
+              label="Registration link"
+              variant="outline"
+            />
+          )}
+          <Link
+            href={currentTab === "contractors" ? "/contractors/new" : "/contractors/subcontractors/new"}
+            className={cn(buttonVariants())}
+          >
+            <Plus className="size-4" />
+            {currentTab === "contractors" ? "New Contractor" : "New Subcontractor"}
+          </Link>
+        </div>
       </div>
 
       {/* Tabs */}

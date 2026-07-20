@@ -96,6 +96,33 @@ export async function rescheduleJobDate(
   return { ok: true };
 }
 
+export async function postOfficeMessage(
+  jobId: string,
+  body: string
+): Promise<{ error: string } | { ok: true }> {
+  if (!body.trim()) return { error: "Message is empty" };
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data: me } = await supabase
+    .from("users")
+    .select("full_name")
+    .eq("id", user.id)
+    .single<{ full_name: string | null }>();
+
+  const { error } = await supabase.from("job_messages").insert({
+    job_id: jobId,
+    sender_role: "office",
+    sender_name: me?.full_name ?? user.email,
+    body: body.trim(),
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath(`/jobs/${jobId}`);
+  return { ok: true };
+}
+
 export async function deleteJob(id: string): Promise<{ error: string } | void> {
   const supabase = await createClient();
   const { error } = await supabase.from("jobs").delete().eq("id", id);

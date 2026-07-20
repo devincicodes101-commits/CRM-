@@ -18,6 +18,7 @@ import { AsyncButton } from "@/components/ui/async-button";
 import { updateJobStatus, approveReschedule, rejectReschedule } from "@/app/(protected)/jobs/actions";
 import { createInvoiceFromJob } from "@/app/(protected)/invoices/actions";
 import { BidPanel } from "@/components/contractors/bid-panel";
+import { JobMessagesPanel, type JobMessage } from "@/components/jobs/job-messages-panel";
 import { CopyLinkButton } from "@/components/shared/copy-link-button";
 import type { Job } from "@/lib/schemas/jobs";
 import type { RescheduleRequest } from "@/lib/schemas/job-related";
@@ -63,9 +64,10 @@ export default async function JobDetailPage({
     .order("created_date", { ascending: false })
     .returns<RescheduleRequest[]>();
 
-  const [{ data: bids }, { data: subcontractors }] = await Promise.all([
+  const [{ data: bids }, { data: subcontractors }, { data: jobMessages }] = await Promise.all([
     supabase.from("job_bids").select("*").eq("job_id", id).order("created_date", { ascending: false }).returns<JobBid[]>(),
     supabase.from("subcontractors").select("id, name, company_name").eq("status", "active").order("name").returns<Subcontractor[]>(),
+    supabase.from("job_messages").select("id, sender_role, sender_name, body, created_date").eq("job_id", id).order("created_date", { ascending: true }).returns<JobMessage[]>(),
   ]);
 
   const pending = rescheduleRequests?.filter((r) => r.status === "pending") ?? [];
@@ -375,6 +377,9 @@ export default async function JobDetailPage({
           <p className="text-sm whitespace-pre-wrap">{job.notes}</p>
         </div>
       )}
+
+      {/* Customer messages thread */}
+      <JobMessagesPanel jobId={id} messages={jobMessages ?? []} />
 
       {/* Bids */}
       <div className="rounded-xl border bg-card p-4 space-y-3">
