@@ -3,6 +3,9 @@ import {
   quoteDiscountReminder,
   processDailyThankYouEmails,
   send24HourJobReminder,
+  overdueInvoiceReminder,
+  chaseCommissionInvoices,
+  newLeadSequenceRunner,
 } from "./scheduled";
 
 // Registry of scheduled automations, keyed by the URL slug used at
@@ -27,7 +30,11 @@ export const CRON_JOBS: Record<string, CronJob> = {
     schedule: "0 10 * * *",
     run: quoteDiscountReminder,
   },
-  "new-lead-sequence": stub("newLeadSequenceRunner", "0 9 * * *"),
+  "new-lead-sequence": {
+    name: "newLeadSequenceRunner",
+    schedule: "0 9 * * *",
+    run: newLeadSequenceRunner,
+  },
   "high-value-commercial-reminder": stub("highValueCommercialReminder", "0 2 * * 1"),
 
   // ── Jobs / field ──────────────────────────────────────────
@@ -46,8 +53,16 @@ export const CRON_JOBS: Record<string, CronJob> = {
   "invoiced-job-reminder": stub("sendInvoicedJobReminder", "0 2 * * *"),
 
   // ── Invoicing / commission ────────────────────────────────
-  "overdue-invoice-reminder": stub("sendOverdueInvoiceReminder", "0 3 * * *"),
-  "commission-chaser": stub("chaseCommissionInvoices", "0 4 * * *"),
+  "overdue-invoice-reminder": {
+    name: "sendOverdueInvoiceReminder",
+    schedule: "0 3 * * *",
+    run: overdueInvoiceReminder,
+  },
+  "commission-chaser": {
+    name: "chaseCommissionInvoices",
+    schedule: "0 4 * * *",
+    run: chaseCommissionInvoices,
+  },
   "monthly-commissions": stub("processMonthlyCommissions", "0 1 30 * *"),
 
   // ── Staff engagement ──────────────────────────────────────
