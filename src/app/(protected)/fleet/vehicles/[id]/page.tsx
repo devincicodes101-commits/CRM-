@@ -115,13 +115,13 @@ export default async function VehicleDetailPage({
         </div>
         <div className="flex gap-2 flex-wrap">
           {vehicle.status !== "active" && (
-            <AsyncButton action={() => updateVehicleStatus(id, "active")} size="sm">
+            <AsyncButton action={updateVehicleStatus.bind(null, id, "active")} size="sm">
               Set Active
             </AsyncButton>
           )}
           {vehicle.status !== "maintenance" && (
             <AsyncButton
-              action={() => updateVehicleStatus(id, "maintenance")}
+              action={updateVehicleStatus.bind(null, id, "maintenance")}
               variant="outline"
               size="sm"
             >
@@ -130,7 +130,7 @@ export default async function VehicleDetailPage({
           )}
           {vehicle.status !== "offline" && (
             <AsyncButton
-              action={() => updateVehicleStatus(id, "offline")}
+              action={updateVehicleStatus.bind(null, id, "offline")}
               variant="outline"
               size="sm"
             >
@@ -241,7 +241,7 @@ export default async function VehicleDetailPage({
         <p className="text-sm text-muted-foreground">
           Permanently delete this vehicle record. This cannot be undone.
         </p>
-        <AsyncButton action={() => deleteVehicle(id)} variant="destructive" size="sm">
+        <AsyncButton action={deleteVehicle.bind(null, id)} variant="destructive" size="sm">
           Delete Vehicle
         </AsyncButton>
       </div>

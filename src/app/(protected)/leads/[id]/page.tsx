@@ -54,7 +54,7 @@ export default async function LeadDetailPage({
         <div className="flex gap-2 flex-wrap">
           {lead.status !== "won" && lead.status !== "lost" && (
             <AsyncButton
-              action={() => convertLeadToCustomer(id)}
+              action={convertLeadToCustomer.bind(null, id)}
               variant="secondary"
               size="sm"
             >

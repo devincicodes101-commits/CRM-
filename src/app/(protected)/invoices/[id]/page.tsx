@@ -71,7 +71,7 @@ export default async function InvoiceDetailPage({
         <div className="flex gap-2 flex-wrap">
           <InvoicePdfButton invoice={invoice} />
           {invoice.status === "draft" && (
-            <AsyncButton action={() => sendInvoice(id)} size="sm">
+            <AsyncButton action={sendInvoice.bind(null, id)} size="sm">
               <Send className="size-4" /> Send Invoice
             </AsyncButton>
           )}
@@ -83,7 +83,7 @@ export default async function InvoiceDetailPage({
             />
           )}
           {invoice.status === "sent" && isOverdue && (
-            <AsyncButton action={() => markOverdue(id)} variant="outline" size="sm">
+            <AsyncButton action={markOverdue.bind(null, id)} variant="outline" size="sm">
               <AlertTriangle className="size-4" /> Mark Overdue
             </AsyncButton>
           )}
@@ -97,7 +97,7 @@ export default async function InvoiceDetailPage({
           )}
           {["draft", "cancelled"].includes(invoice.status) && (
             <AsyncButton
-              action={() => deleteInvoice(id)}
+              action={deleteInvoice.bind(null, id)}
               variant="outline"
               size="sm"
             >

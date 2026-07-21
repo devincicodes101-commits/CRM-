@@ -66,21 +66,21 @@ export default async function QuoteDetailPage({
         </div>
         <div className="flex gap-2 flex-wrap">
           {quote.status === "draft" && (
-            <AsyncButton action={() => sendQuote(id)} size="sm">
+            <AsyncButton action={sendQuote.bind(null, id)} size="sm">
               <Send className="size-4" /> Send to Customer
             </AsyncButton>
           )}
           {quote.status === "sent" && (
             <>
               <AsyncButton
-                action={() => updateQuoteStatus(id, "accepted")}
+                action={updateQuoteStatus.bind(null, id, "accepted")}
                 variant="secondary"
                 size="sm"
               >
                 <CheckCircle className="size-4" /> Mark Accepted
               </AsyncButton>
               <AsyncButton
-                action={() => updateQuoteStatus(id, "declined")}
+                action={updateQuoteStatus.bind(null, id, "declined")}
                 variant="outline"
                 size="sm"
               >

@@ -62,7 +62,7 @@ export default async function SubcontractorDetailPage({
         </div>
         <div className="flex gap-2 flex-wrap">
           <AsyncButton
-            action={() => toggleSubcontractorStatus(id, sub.status)}
+            action={toggleSubcontractorStatus.bind(null, id, sub.status)}
             variant="outline"
             size="sm"
           >
@@ -74,7 +74,7 @@ export default async function SubcontractorDetailPage({
           >
             <Pencil className="size-4" /> Edit
           </Link>
-          <AsyncButton action={() => deleteSubcontractor(id)} variant="outline" size="sm">
+          <AsyncButton action={deleteSubcontractor.bind(null, id)} variant="outline" size="sm">
             Delete
           </AsyncButton>
         </div>

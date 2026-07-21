@@ -112,13 +112,13 @@ export default async function JobDetailPage({
         <div className="flex gap-2 flex-wrap justify-end">
           {/* Status lifecycle buttons */}
           {job.status === "scheduled" && (
-            <AsyncButton action={() => updateJobStatus(id, "in_progress")} size="sm">
+            <AsyncButton action={updateJobStatus.bind(null, id, "in_progress")} size="sm">
               <Play className="size-4" /> Start Job
             </AsyncButton>
           )}
           {job.status === "in_progress" && (
             <AsyncButton
-              action={() => updateJobStatus(id, "completed")}
+              action={updateJobStatus.bind(null, id, "completed")}
               variant="secondary"
               size="sm"
             >
@@ -128,13 +128,13 @@ export default async function JobDetailPage({
           {job.status === "completed" && (
             <>
               <AsyncButton
-                action={() => createInvoiceFromJob(id)}
+                action={createInvoiceFromJob.bind(null, id)}
                 size="sm"
               >
                 <Receipt className="size-4" /> Create Invoice
               </AsyncButton>
               <AsyncButton
-                action={() => updateJobStatus(id, "invoiced")}
+                action={updateJobStatus.bind(null, id, "invoiced")}
                 variant="secondary"
                 size="sm"
               >
@@ -144,7 +144,7 @@ export default async function JobDetailPage({
           )}
           {!["cancelled", "invoiced", "completed"].includes(job.status) && (
             <AsyncButton
-              action={() => updateJobStatus(id, "on_hold")}
+              action={updateJobStatus.bind(null, id, "on_hold")}
               variant="outline"
               size="sm"
             >
@@ -153,7 +153,7 @@ export default async function JobDetailPage({
           )}
           {!["cancelled", "completed", "invoiced"].includes(job.status) && (
             <AsyncButton
-              action={() => updateJobStatus(id, "cancelled")}
+              action={updateJobStatus.bind(null, id, "cancelled")}
               variant="outline"
               size="sm"
             >
@@ -217,13 +217,13 @@ export default async function JobDetailPage({
               </div>
               <div className="flex gap-2 shrink-0">
                 <AsyncButton
-                  action={() => approveReschedule(r.id, id, r.requested_date ?? job.start_date)}
+                  action={approveReschedule.bind(null, r.id, id, r.requested_date ?? job.start_date)}
                   size="xs"
                 >
                   Approve
                 </AsyncButton>
                 <AsyncButton
-                  action={() => rejectReschedule(r.id, id)}
+                  action={rejectReschedule.bind(null, r.id, id)}
                   variant="outline"
                   size="xs"
                 >

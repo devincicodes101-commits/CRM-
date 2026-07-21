@@ -59,7 +59,7 @@ export default async function ContractorDetailPage({
           >
             <Pencil className="size-4" /> Edit
           </Link>
-          <AsyncButton action={() => deleteContractor(id)} variant="outline" size="sm">
+          <AsyncButton action={deleteContractor.bind(null, id)} variant="outline" size="sm">
             <Trash2 className="size-4" /> Delete
           </AsyncButton>
         </div>
