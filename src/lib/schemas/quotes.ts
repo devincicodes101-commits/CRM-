@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { baseSelectSchema } from "./common";
+import { baseSelectSchema, isoDateTimeOptional } from "./common";
 
 export const quoteItemSchema = z.object({
   service_id: z.string().uuid().optional(),
@@ -30,7 +30,7 @@ export const quoteInsertSchema = z.object({
   total: z.number().min(0).default(0),
   notes: z.string().nullable().optional(),
   status: z.enum(['draft', 'sent', 'accepted', 'declined', 'expired']).default('draft'),
-  valid_until: z.string().datetime().nullable().optional(),
+  valid_until: isoDateTimeOptional,
   template_style: z.enum(['modern', 'classic', 'minimal']).default('modern'),
   sent_date: z.string().datetime().nullable().optional(),
   discount_email_sent: z.boolean().default(false),

@@ -101,20 +101,11 @@ export function JobForm({ job, customers, quotes = [] }: Props) {
   }
 
   function onSubmit(values: FormValues) {
-    // Normalise datetime-local strings to ISO
-    const normalized = {
-      ...values,
-      start_date: values.start_date
-        ? new Date(values.start_date).toISOString()
-        : values.start_date,
-      end_date: values.end_date
-        ? new Date(values.end_date).toISOString()
-        : values.end_date,
-    };
+    // datetime-local strings are coerced to ISO by the zod schema (isoDateTime*).
     startTransition(async () => {
       const result = isEdit
-        ? await updateJob(job.id, normalized)
-        : await createJob(normalized);
+        ? await updateJob(job.id, values)
+        : await createJob(values);
       if (result?.error) toast.error(result.error);
     });
   }

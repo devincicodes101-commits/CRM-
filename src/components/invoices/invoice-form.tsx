@@ -108,14 +108,11 @@ export function InvoiceForm({ invoice, customers }: Props) {
   }, [customerId, customers, setValue]);
 
   function onSubmit(values: FormValues) {
-    const normalized = {
-      ...values,
-      due_date: values.due_date ? new Date(values.due_date).toISOString() : null,
-    };
+    // datetime-local (due_date) is coerced to ISO by the zod schema.
     startTransition(async () => {
       const result = isEdit
-        ? await updateInvoice(invoice.id, normalized)
-        : await createInvoice(normalized);
+        ? await updateInvoice(invoice.id, values)
+        : await createInvoice(values);
       if (result?.error) toast.error(result.error);
     });
   }

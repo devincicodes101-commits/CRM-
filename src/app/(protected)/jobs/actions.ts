@@ -8,7 +8,7 @@ import { onJobCreated } from "@/lib/automations/triggers";
 
 export async function createJob(values: unknown): Promise<{ error: string } | void> {
   const parsed = jobInsertSchema.safeParse(values);
-  if (!parsed.success) return { error: "Invalid form data" };
+  if (!parsed.success) return { error: parsed.error.issues[0] ? `${parsed.error.issues[0].path.join(".") || "form"}: ${parsed.error.issues[0].message}` : "Invalid form data" };
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -51,7 +51,7 @@ export async function createJob(values: unknown): Promise<{ error: string } | vo
 
 export async function updateJob(id: string, values: unknown): Promise<{ error: string } | void> {
   const parsed = jobUpdateSchema.safeParse(values);
-  if (!parsed.success) return { error: "Invalid form data" };
+  if (!parsed.success) return { error: parsed.error.issues[0] ? `${parsed.error.issues[0].path.join(".") || "form"}: ${parsed.error.issues[0].message}` : "Invalid form data" };
 
   const supabase = await createClient();
   const { error } = await supabase.from("jobs").update(parsed.data).eq("id", id);

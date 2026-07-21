@@ -9,7 +9,7 @@ import { sendEmail } from "@/lib/email";
 
 export async function createQuote(values: unknown): Promise<{ error: string } | void> {
   const parsed = quoteInsertSchema.safeParse(values);
-  if (!parsed.success) return { error: "Invalid form data" };
+  if (!parsed.success) return { error: parsed.error.issues[0] ? `${parsed.error.issues[0].path.join(".") || "form"}: ${parsed.error.issues[0].message}` : "Invalid form data" };
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -30,7 +30,7 @@ export async function createQuote(values: unknown): Promise<{ error: string } | 
 
 export async function updateQuote(id: string, values: unknown): Promise<{ error: string } | void> {
   const parsed = quoteUpdateSchema.safeParse(values);
-  if (!parsed.success) return { error: "Invalid form data" };
+  if (!parsed.success) return { error: parsed.error.issues[0] ? `${parsed.error.issues[0].path.join(".") || "form"}: ${parsed.error.issues[0].message}` : "Invalid form data" };
 
   const supabase = await createClient();
   const { error } = await supabase.from("quotes").update(parsed.data).eq("id", id);

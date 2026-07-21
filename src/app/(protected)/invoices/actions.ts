@@ -8,7 +8,7 @@ import { onInvoicePaid } from "@/lib/automations/triggers";
 
 export async function createInvoice(values: unknown): Promise<{ error: string } | void> {
   const parsed = invoiceInsertSchema.safeParse(values);
-  if (!parsed.success) return { error: "Invalid form data" };
+  if (!parsed.success) return { error: parsed.error.issues[0] ? `${parsed.error.issues[0].path.join(".") || "form"}: ${parsed.error.issues[0].message}` : "Invalid form data" };
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -27,7 +27,7 @@ export async function createInvoice(values: unknown): Promise<{ error: string } 
 
 export async function updateInvoice(id: string, values: unknown): Promise<{ error: string } | void> {
   const parsed = invoiceUpdateSchema.safeParse(values);
-  if (!parsed.success) return { error: "Invalid form data" };
+  if (!parsed.success) return { error: parsed.error.issues[0] ? `${parsed.error.issues[0].path.join(".") || "form"}: ${parsed.error.issues[0].message}` : "Invalid form data" };
 
   const supabase = await createClient();
   const { error } = await supabase.from("invoices").update(parsed.data).eq("id", id);

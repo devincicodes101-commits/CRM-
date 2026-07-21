@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { baseSelectSchema } from "./common";
+import { baseSelectSchema, isoDateTimeOptional, isoDateTimeRequired } from "./common";
 
 export const jobClientPhotoSchema = z.object({
   url: z.string().min(1),
@@ -28,8 +28,8 @@ export const jobInsertSchema = z.object({
   quote_id: z.string().uuid().nullable().optional(),
   address: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
-  start_date: z.string().datetime(),
-  end_date: z.string().datetime().nullable().optional(),
+  start_date: isoDateTimeRequired,
+  end_date: isoDateTimeOptional,
   start_time: z.string().nullable().optional(),
   end_time: z.string().nullable().optional(),
   assigned_vehicle: z.string().nullable().optional(),

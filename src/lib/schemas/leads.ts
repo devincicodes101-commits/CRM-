@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { baseSelectSchema } from "./common";
+import { baseSelectSchema, isoDateTimeOptional } from "./common";
 
 export const leadInsertSchema = z.object({
   name: z.string().min(1),
@@ -16,7 +16,7 @@ export const leadInsertSchema = z.object({
   assigned_to_id: z.string().uuid().nullable().optional(),
   notes: z.string().nullable().optional(),
   call_notes: z.string().nullable().optional(),
-  follow_up_date: z.string().datetime().nullable().optional(),
+  follow_up_date: isoDateTimeOptional,
   follow_up_time: z.string().nullable().optional(),
   estimated_value: z.number().min(0).nullable().optional(),
   converted_to_customer_id: z.string().uuid().nullable().optional(),

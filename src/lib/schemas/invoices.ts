@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { baseSelectSchema } from "./common";
+import { baseSelectSchema, isoDateTimeOptional } from "./common";
 
 export const invoiceItemSchema = z.object({
   service_name: z.string().min(1),
@@ -34,7 +34,7 @@ export const invoiceInsertSchema = z.object({
   amount_paid: z.number().min(0).default(0),
   notes: z.string().nullable().optional(),
   status: z.enum(['draft', 'sent', 'part_paid', 'paid', 'overdue', 'cancelled']).default('draft'),
-  due_date: z.string().datetime().nullable().optional(),
+  due_date: isoDateTimeOptional,
   sent_date: z.string().datetime().nullable().optional(),
   paid_date: z.string().datetime().nullable().optional(),
   payment_method: z.enum(['bank_transfer', 'credit_card', 'direct_debit']).nullable().optional(),
