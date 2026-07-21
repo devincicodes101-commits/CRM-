@@ -48,6 +48,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Field", href: "/field", icon: Wrench, roles: ["admin", "user", "operative"] },
   { label: "Fleet", href: "/fleet", icon: Truck, roles: ["admin", "user"] },
   { label: "Contractors", href: "/contractors", icon: HardHat, roles: ["admin", "user"] },
+  { label: "CRM Inbox", href: "/crm-inbox", icon: Inbox, roles: ["admin", "user", "sales", "telesales"] },
   { label: "Comms", href: "/comms", icon: MessageSquare, roles: ["admin", "user"] },
   { label: "Email Sequences", href: "/comms/sequences", icon: Mail, roles: ["admin", "user"] },
   { label: "Marketing Dashboard", href: "/marketing", icon: Megaphone, roles: ["admin", "user"] },
