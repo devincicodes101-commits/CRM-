@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { customerInsertSchema } from "@/lib/schemas/customers";
 import type { Customer } from "@/lib/schemas/customers";
 import { createCustomer, updateCustomer } from "@/app/(protected)/customers/actions";
+import { PostcodeLookup } from "@/components/shared/postcode-lookup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,7 +31,7 @@ export function CustomerForm({ customer }: Props) {
   const [pending, startTransition] = useTransition();
   const isEdit = !!customer;
 
-  const { register, control, handleSubmit, formState: { errors } } = useForm<FormValues>({
+  const { register, control, handleSubmit, setValue, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(customerInsertSchema),
     defaultValues: customer ?? {
       name: "",
@@ -114,6 +115,16 @@ export function CustomerForm({ customer }: Props) {
                 </SelectContent>
               </Select>
             )}
+          />
+        </div>
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label>Postcode Lookup</Label>
+          <PostcodeLookup
+            onSelect={(addr) => {
+              setValue("address", addr);
+              const m = addr.match(/([A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2})\s*$/i);
+              if (m) setValue("postcode", m[1].toUpperCase());
+            }}
           />
         </div>
         <div className="space-y-1.5">

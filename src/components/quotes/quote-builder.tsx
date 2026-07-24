@@ -11,6 +11,7 @@ import type { Quote } from "@/lib/schemas/quotes";
 import type { Service } from "@/lib/schemas/services";
 import type { Customer } from "@/lib/schemas/customers";
 import { createQuote, updateQuote } from "@/app/(protected)/quotes/actions";
+import { PostcodeLookup } from "@/components/shared/postcode-lookup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -185,7 +186,8 @@ export function QuoteBuilder({ quote, customers, services }: Props) {
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="customer_address">Address</Label>
-            <Input id="customer_address" {...register("customer_address")} />
+            <PostcodeLookup onSelect={(addr) => setValue("customer_address", addr)} />
+            <Input id="customer_address" {...register("customer_address")} className="mt-2" />
           </div>
         </div>
       </div>
