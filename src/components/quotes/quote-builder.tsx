@@ -9,6 +9,7 @@ import { Trash2, Plus } from "lucide-react";
 import { quoteInsertSchema } from "@/lib/schemas/quotes";
 import type { Quote } from "@/lib/schemas/quotes";
 import type { Service } from "@/lib/schemas/services";
+import type { ServiceTemplate } from "@/lib/schemas/service-templates";
 import type { Customer } from "@/lib/schemas/customers";
 import { createQuote, updateQuote } from "@/app/(protected)/quotes/actions";
 import { PostcodeLookup } from "@/components/shared/postcode-lookup";
@@ -38,13 +39,14 @@ type Props = {
   quote?: Quote;
   customers: Customer[];
   services: Service[];
+  templates?: ServiceTemplate[];
 };
 
 function fmt(n: number) {
   return `£${n.toFixed(2)}`;
 }
 
-export function QuoteBuilder({ quote, customers, services }: Props) {
+export function QuoteBuilder({ quote, customers, services, templates = [] }: Props) {
   const [pending, startTransition] = useTransition();
   const isEdit = !!quote;
 
@@ -123,6 +125,23 @@ export function QuoteBuilder({ quote, customers, services }: Props) {
     });
   }
 
+  function applyTemplate(templateId: string) {
+    const t = templates.find((x) => x.id === templateId);
+    if (!t) return;
+    for (const it of t.items) {
+      const qty = it.quantity ?? 1;
+      append({
+        service_id: it.service_id,
+        service_name: it.service_name,
+        description: it.description ?? "",
+        quantity: qty,
+        unit_price: it.unit_price,
+        unit_type: it.unit_type,
+        total: qty * it.unit_price,
+      });
+    }
+  }
+
   function onSubmit(values: FormValues) {
     startTransition(async () => {
       const result = isEdit
@@ -196,7 +215,18 @@ export function QuoteBuilder({ quote, customers, services }: Props) {
       <div className="rounded-xl border bg-card p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">Line Items</h2>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
+            {templates.length > 0 && (
+              <select
+                onChange={(e) => { if (e.target.value) { applyTemplate(e.target.value); e.target.value = ""; } }}
+                defaultValue=""
+                className="rounded-md border px-2 py-1 text-xs bg-background"
+                title="Apply a service template"
+              >
+                <option value="">+ Apply template…</option>
+                {templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            )}
             {services.slice(0, 5).map((s) => (
               <Button
                 key={s.id}

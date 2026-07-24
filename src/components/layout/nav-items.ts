@@ -43,6 +43,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Quotes", href: "/quotes", icon: FileText },
   { label: "High-Value Commercial", href: "/high-value-commercial", icon: Building2, roles: ["admin", "user", "sales", "telesales"] },
   { label: "Services", href: "/services", icon: Layers, roles: ["admin", "user"] },
+  { label: "Service Templates", href: "/service-templates", icon: LayoutTemplate, roles: ["admin", "user"] },
   { label: "Jobs", href: "/jobs", icon: Briefcase },
   { label: "Invoices", href: "/invoices", icon: Receipt },
   { label: "Field", href: "/field", icon: Wrench, roles: ["admin", "user", "operative"] },

@@ -8,9 +8,10 @@ import type { Service } from "@/lib/schemas/services";
 export default async function NewQuotePage() {
   const supabase = await createClient();
 
-  const [{ data: customers }, { data: services }] = await Promise.all([
+  const [{ data: customers }, { data: services }, { data: templates }] = await Promise.all([
     supabase.from("customers").select("*").eq("status", "active").order("name").returns<Customer[]>(),
     supabase.from("services").select("*").eq("is_active", true).order("name").returns<Service[]>(),
+    supabase.from("service_templates").select("*").order("created_date", { ascending: false }),
   ]);
 
   return (
@@ -24,7 +25,7 @@ export default async function NewQuotePage() {
         </Link>
         <h1 className="text-2xl font-bold">New Quote</h1>
       </div>
-      <QuoteBuilder customers={customers ?? []} services={services ?? []} />
+      <QuoteBuilder customers={customers ?? []} services={services ?? []} templates={templates ?? []} />
     </div>
   );
 }

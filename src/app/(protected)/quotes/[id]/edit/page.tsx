@@ -15,10 +15,11 @@ export default async function EditQuotePage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: quote }, { data: customers }, { data: services }] = await Promise.all([
+  const [{ data: quote }, { data: customers }, { data: services }, { data: templates }] = await Promise.all([
     supabase.from("quotes").select("*").eq("id", id).single<Quote>(),
     supabase.from("customers").select("*").eq("status", "active").order("name").returns<Customer[]>(),
     supabase.from("services").select("*").eq("is_active", true).order("name").returns<Service[]>(),
+    supabase.from("service_templates").select("*").order("created_date", { ascending: false }),
   ]);
 
   if (!quote) notFound();
@@ -34,7 +35,7 @@ export default async function EditQuotePage({
         </Link>
         <h1 className="text-2xl font-bold">Edit Quote</h1>
       </div>
-      <QuoteBuilder quote={quote} customers={customers ?? []} services={services ?? []} />
+      <QuoteBuilder quote={quote} customers={customers ?? []} services={services ?? []} templates={templates ?? []} />
     </div>
   );
 }
