@@ -22,10 +22,21 @@ export async function lookupAddresses(postcode: string): Promise<AddressLookupRe
       `https://api.getaddress.io/find/${encodeURIComponent(clean)}?api-key=${encodeURIComponent(key)}`,
       { cache: "no-store" },
     );
-    if (res.status === 404) return { addresses: [] };
-    if (res.status === 401 || res.status === 403) return { error: "getAddress.io key rejected — check the key is correct and active." };
-    if (res.status === 429) return { error: "getAddress.io lookup limit reached for now." };
-    if (!res.ok) return { error: `Lookup failed (${res.status})` };
+    if (!res.ok) {
+      // Surface getAddress's own message so we can see the real reason.
+      let detail = "";
+      try {
+        const body = (await res.json()) as { Message?: string; message?: string };
+        detail = body.Message || body.message || "";
+      } catch {
+        detail = (await res.text().catch(() => "")).slice(0, 120);
+      }
+      if (res.status === 401 || res.status === 403)
+        return { error: `Key rejected (${res.status}): ${detail || "check the API key is correct and your email is verified"}` };
+      if (res.status === 429) return { error: "getAddress.io lookup limit reached for now." };
+      if (res.status === 404) return { error: `getAddress 404: ${detail || "postcode not found / account not active"}` };
+      return { error: `getAddress ${res.status}: ${detail || "lookup failed"}` };
+    }
 
     const json = (await res.json()) as { addresses?: string[]; postcode?: string };
     const pc = (json.postcode ?? postcode).toUpperCase();
