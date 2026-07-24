@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { SignaturePad } from "@/components/shared/signature-pad";
 
 type Props = { jobId: string; token: string; customerName: string };
 
@@ -24,6 +25,7 @@ export function CompletionForm({ jobId, token, customerName }: Props) {
   const [satisfaction, setSatisfaction] = useState("good");
   const [comments, setComments] = useState("");
   const [name, setName] = useState(customerName);
+  const [signature, setSignature] = useState("");
   const [done, setDone] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -31,12 +33,14 @@ export function CompletionForm({ jobId, token, customerName }: Props) {
     e.preventDefault();
     if (!name.trim()) { toast.error("Please enter your name"); return; }
     if (!rating) { toast.error("Please select a star rating"); return; }
+    if (!signature) { toast.error("Please sign to confirm completion"); return; }
     startTransition(async () => {
       const result = await submitCompletion(jobId, token, {
         customer_name: name,
         star_rating: rating,
         customer_satisfaction: satisfaction,
         customer_comments: comments,
+        customer_signature: signature,
       });
       if (result?.error) toast.error(result.error);
       else setDone(true);
@@ -140,6 +144,12 @@ export function CompletionForm({ jobId, token, customerName }: Props) {
           rows={3}
           placeholder="Any additional feedback…"
         />
+      </div>
+
+      {/* Signature */}
+      <div className="space-y-1.5">
+        <Label>Signature *</Label>
+        <SignaturePad onChange={setSignature} />
       </div>
 
       <Button type="submit" className="w-full h-11 text-base" disabled={pending}>

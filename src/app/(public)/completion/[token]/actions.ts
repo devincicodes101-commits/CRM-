@@ -12,6 +12,7 @@ export async function submitCompletion(
     star_rating: number;
     customer_satisfaction: string;
     customer_comments: string;
+    customer_signature?: string;
   }
 ): Promise<{ error: string } | void> {
   const supabase = await createClient();
@@ -24,6 +25,7 @@ export async function submitCompletion(
     star_rating: data.star_rating,
     customer_satisfaction: data.customer_satisfaction as "excellent" | "good" | "satisfactory" | "poor",
     customer_comments: data.customer_comments,
+    customer_signature: data.customer_signature || null,
     customer_signed_off: true,
     completed_date: new Date().toISOString(),
     created_by_id: user?.id ?? null,
