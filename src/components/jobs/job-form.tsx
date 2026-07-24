@@ -11,6 +11,7 @@ import type { Job } from "@/lib/schemas/jobs";
 import type { Customer } from "@/lib/schemas/customers";
 import type { Quote } from "@/lib/schemas/quotes";
 import { createJob, updateJob } from "@/app/(protected)/jobs/actions";
+import { PostcodeLookup } from "@/components/shared/postcode-lookup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -276,6 +277,7 @@ export function JobForm({
           )}
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="address">Site Address</Label>
+            <PostcodeLookup onSelect={(addr) => setValue("address", addr)} />
             <Input id="address" {...register("address")} placeholder="Full address including postcode" />
           </div>
         </div>
