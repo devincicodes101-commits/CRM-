@@ -11,8 +11,11 @@ export async function lookupAddresses(postcode: string): Promise<AddressLookupRe
   const key = process.env.GETADDRESS_API_KEY;
   if (!key) return { error: "Address lookup isn't configured (missing GETADDRESS_API_KEY)." };
 
-  const clean = postcode.trim().replace(/\s+/g, "");
+  // getAddress expects a full postcode, uppercase, no spaces (e.g. SW1A1AA).
+  const clean = postcode.trim().replace(/\s+/g, "").toUpperCase();
   if (!clean) return { error: "Enter a postcode" };
+  // A full UK postcode is 5–7 chars; an outcode alone (e.g. SW1A) won't return addresses.
+  if (clean.length < 5) return { error: "Enter a full postcode (e.g. SW1A 1AA)" };
 
   try {
     const res = await fetch(
@@ -20,7 +23,8 @@ export async function lookupAddresses(postcode: string): Promise<AddressLookupRe
       { cache: "no-store" },
     );
     if (res.status === 404) return { addresses: [] };
-    if (res.status === 401) return { error: "Invalid getAddress.io API key." };
+    if (res.status === 401 || res.status === 403) return { error: "getAddress.io key rejected — check the key is correct and active." };
+    if (res.status === 429) return { error: "getAddress.io lookup limit reached for now." };
     if (!res.ok) return { error: `Lookup failed (${res.status})` };
 
     const json = (await res.json()) as { addresses?: string[]; postcode?: string };
