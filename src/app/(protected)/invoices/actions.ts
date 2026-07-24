@@ -186,6 +186,46 @@ export async function markOverdue(id: string): Promise<{ error: string } | void>
   revalidatePath("/invoices");
 }
 
+// Issue a credit note — a credit_note-type invoice with a negative total.
+export async function issueCreditNote(input: {
+  customerId?: string | null;
+  customerName: string;
+  customerEmail?: string | null;
+  amount: number;
+  reason?: string;
+}): Promise<{ error: string } | { ok: true; id: string }> {
+  if (!input.customerName?.trim()) return { error: "Customer name is required" };
+  if (!input.amount || input.amount <= 0) return { error: "Enter a credit amount greater than 0" };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const amt = Math.abs(input.amount);
+  const { data, error } = await supabase
+    .from("invoices")
+    .insert({
+      customer_id: input.customerId ?? null,
+      customer_name: input.customerName.trim(),
+      customer_email: input.customerEmail ?? null,
+      invoice_type: "credit_note",
+      items: [{ service_name: "Credit Note", quantity: 1, unit_price: -amt, total: -amt }],
+      subtotal: -amt,
+      vat_rate: 0,
+      vat_amount: 0,
+      total: -amt,
+      status: "draft",
+      notes: input.reason?.trim() || null,
+      created_by_id: user.id,
+    })
+    .select("id")
+    .single();
+  if (error) return { error: error.message };
+
+  revalidatePath("/invoices");
+  return { ok: true, id: data.id };
+}
+
 export async function deleteInvoice(id: string): Promise<{ error: string } | void> {
   const supabase = await createClient();
   const { error } = await supabase.from("invoices").delete().eq("id", id);

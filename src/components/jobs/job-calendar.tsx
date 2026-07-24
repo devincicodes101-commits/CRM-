@@ -7,14 +7,24 @@ import {
   addMonths, addWeeks, addDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   isSameDay, isSameMonth, format,
 } from "date-fns";
-import { ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
+import { ChevronLeft, ChevronRight, AlertTriangle, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { rescheduleJobDate } from "@/app/(protected)/jobs/actions";
+import { RouteTools } from "@/components/jobs/route-tools";
 import type { Job } from "@/lib/schemas/jobs";
 
 type View = "month" | "week" | "day";
+type Period = "all" | "today" | "week" | "month";
 const WEEK_OPTS = { weekStartsOn: 1 as const };
+
+// KPI cards mirror Base44 (note: 'completed' shows as "Paid", 'scheduled' as "Booked").
+const STATUS_CARDS: { key: string; title: string; accent: string }[] = [
+  { key: "on_hold", title: "On Hold", accent: "bg-amber-50 border-amber-200 text-amber-700" },
+  { key: "scheduled", title: "Booked", accent: "bg-blue-50 border-blue-200 text-blue-700" },
+  { key: "invoiced", title: "Invoiced", accent: "bg-purple-50 border-purple-200 text-purple-700" },
+  { key: "completed", title: "Paid", accent: "bg-emerald-50 border-emerald-200 text-emerald-700" },
+];
 
 function jobDay(j: Job): Date | null {
   if (!j.start_date) return null;
@@ -78,10 +88,43 @@ export function JobCalendar({ jobs: initialJobs }: { jobs: Job[] }) {
     setJobs(initialJobs);
   }
 
-  const conflicts = useMemo(() => computeConflicts(jobs), [jobs]);
+  const [period, setPeriod] = useState<Period>("all");
+  const [operative, setOperative] = useState<string>("all");
+
+  const operatives = useMemo(
+    () => [...new Set(jobs.map((j) => j.assigned_team).filter(Boolean) as string[])].sort(),
+    [jobs],
+  );
+
+  const filteredJobs = useMemo(() => {
+    const now = new Date();
+    return jobs.filter((j) => {
+      if (operative !== "all" && j.assigned_team !== operative) return false;
+      const d = jobDay(j);
+      if (period !== "all") {
+        if (!d) return false;
+        if (period === "today" && !isSameDay(d, now)) return false;
+        if (period === "week" && (d < startOfWeek(now, WEEK_OPTS) || d > endOfWeek(now, WEEK_OPTS))) return false;
+        if (period === "month" && (d < startOfMonth(now) || d > endOfMonth(now))) return false;
+      }
+      return true;
+    });
+  }, [jobs, period, operative]);
+
+  const statusCounts = useMemo(() => {
+    const c: Record<string, number> = {};
+    for (const j of filteredJobs) c[j.status] = (c[j.status] ?? 0) + 1;
+    return c;
+  }, [filteredJobs]);
+  const totalValue = useMemo(
+    () => filteredJobs.reduce((s, j) => s + (Number(j.total_value) || 0), 0),
+    [filteredJobs],
+  );
+
+  const conflicts = useMemo(() => computeConflicts(filteredJobs), [filteredJobs]);
 
   const jobsOn = (day: Date) =>
-    jobs
+    filteredJobs
       .filter((j) => { const d = jobDay(j); return d && isSameDay(d, day); })
       .sort((a, b) => (toMinutes(a.start_time) ?? 0) - (toMinutes(b.start_time) ?? 0));
 
@@ -123,6 +166,41 @@ export function JobCalendar({ jobs: initialJobs }: { jobs: Job[] }) {
 
   return (
     <div className="space-y-4">
+      {/* KPI status cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {STATUS_CARDS.map((c) => (
+          <div key={c.key} className={cn("rounded-xl border p-4", c.accent)}>
+            <p className="text-2xl font-bold">{statusCounts[c.key] ?? 0}</p>
+            <p className="text-sm font-medium">{c.title}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Filters + total value */}
+      <div className="flex items-center gap-3 flex-wrap text-sm">
+        <div className="flex items-center gap-1">
+          <span className="text-muted-foreground mr-1">Period:</span>
+          {(["all", "today", "week", "month"] as Period[]).map((p) => (
+            <button key={p} onClick={() => setPeriod(p)}
+              className={cn("px-2.5 py-1 rounded-md capitalize", period === p ? "bg-primary text-white" : "border hover:bg-muted")}>
+              {p === "all" ? "All Time" : p === "week" ? "This Week" : p === "month" ? "This Month" : "Today"}
+            </button>
+          ))}
+        </div>
+        {operatives.length > 0 && (
+          <div className="flex items-center gap-1">
+            <span className="text-muted-foreground mr-1">Operative:</span>
+            <select value={operative} onChange={(e) => setOperative(e.target.value)} className="rounded-md border px-2 py-1 bg-background">
+              <option value="all">All</option>
+              {operatives.map((o) => <option key={o} value={o}>{o}</option>)}
+            </select>
+          </div>
+        )}
+        <span className="ml-auto font-semibold">
+          {filteredJobs.length} jobs · £{totalValue.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+        </span>
+      </div>
+
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-1">
@@ -131,15 +209,26 @@ export function JobCalendar({ jobs: initialJobs }: { jobs: Job[] }) {
           <button onClick={() => move(1)} className="p-2 rounded-md hover:bg-muted"><ChevronRight className="size-4" /></button>
           <h2 className="ml-2 font-semibold">{title}</h2>
         </div>
-        <div className="flex items-center rounded-lg border p-0.5">
-          {(["month", "week", "day"] as View[]).map((v) => (
-            <button key={v} onClick={() => setView(v)}
-              className={cn("px-3 py-1 rounded-md text-sm capitalize", view === v ? "bg-primary text-white" : "hover:bg-muted")}>
-              {v}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center rounded-lg border p-0.5">
+            {(["month", "week", "day"] as View[]).map((v) => (
+              <button key={v} onClick={() => setView(v)}
+                className={cn("px-3 py-1 rounded-md text-sm capitalize", view === v ? "bg-primary text-white" : "hover:bg-muted")}>
+                {v}
+              </button>
+            ))}
+          </div>
+          <Link href="/jobs/new" className="inline-flex items-center gap-1.5 rounded-lg bg-primary text-white text-sm px-3 py-1.5 font-medium hover:bg-primary/90">
+            <Plus className="size-4" /> Book Job
+          </Link>
         </div>
       </div>
+
+      {/* Route tools for the focused day (day view) or today */}
+      <RouteTools
+        dayJobs={jobsOn(view === "day" ? anchor : new Date())}
+        dayLabel={format(view === "day" ? anchor : new Date(), "EEEE d MMM")}
+      />
 
       {conflicts.size > 0 && (
         <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">

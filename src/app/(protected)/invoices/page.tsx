@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { CreditNoteDialog } from "@/components/invoices/credit-note-dialog";
 import type { Invoice } from "@/lib/schemas/invoices";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -29,6 +30,12 @@ export default async function InvoicesPage({
   const { data: invoices } = await query.returns<Invoice[]>();
   const list = invoices ?? [];
 
+  const { data: customers } = await supabase
+    .from("customers")
+    .select("id, name, email")
+    .order("name")
+    .returns<{ id: string; name: string; email: string | null }[]>();
+
   const totalPaid = list.filter((i) => i.status === "paid").reduce((s, i) => s + Number(i.total), 0);
   const totalOutstanding = list.filter((i) => !["paid", "cancelled"].includes(i.status)).reduce((s, i) => s + (Number(i.total) - Number(i.amount_paid)), 0);
   const totalOverdue = list.filter((i) => i.status === "overdue").length;
@@ -43,12 +50,15 @@ export default async function InvoicesPage({
             {list.length} invoices · {totalOverdue > 0 ? `${totalOverdue} overdue` : "0 overdue"}
           </p>
         </div>
-        <Link
-          href="/invoices/new"
-          className="flex items-center gap-1.5 text-sm rounded-xl px-4 py-2 bg-primary text-white font-medium hover:bg-primary/90 transition-colors"
-        >
-          Issue Credit Note
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/invoices/new"
+            className="flex items-center gap-1.5 text-sm rounded-xl px-4 py-2 bg-primary text-white font-medium hover:bg-primary/90 transition-colors"
+          >
+            New Invoice
+          </Link>
+          <CreditNoteDialog customers={customers ?? []} />
+        </div>
       </div>
 
       {/* KPI cards */}
