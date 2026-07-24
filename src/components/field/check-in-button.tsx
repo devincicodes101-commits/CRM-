@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { MapPin, LogOut, Loader2 } from "lucide-react";
 import { checkIn, checkOut } from "@/app/(protected)/field/actions";
+import { enqueue, isOffline } from "@/lib/offline-queue";
 import { Button } from "@/components/ui/button";
 
 type Props = {
@@ -25,6 +26,11 @@ export function CheckInButton({ jobId, checkedIn, checkedOut }: Props) {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setLocating(false);
+        if (isOffline()) {
+          enqueue({ type: "checkin", jobId, lat: pos.coords.latitude, lng: pos.coords.longitude });
+          toast.success("Checked in offline — will sync when back online");
+          return;
+        }
         startTransition(async () => {
           const result = await checkIn(jobId, pos.coords.latitude, pos.coords.longitude);
           if (result?.error) toast.error(result.error);
@@ -40,6 +46,11 @@ export function CheckInButton({ jobId, checkedIn, checkedOut }: Props) {
   }
 
   function handleCheckOut() {
+    if (isOffline()) {
+      enqueue({ type: "checkout", jobId });
+      toast.success("Checked out offline — will sync when back online");
+      return;
+    }
     startTransition(async () => {
       const result = await checkOut(jobId);
       if (result?.error) toast.error(result.error);

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { CheckCircle } from "lucide-react";
 import { completeJobFromField } from "@/app/(protected)/field/actions";
+import { enqueue, isOffline } from "@/lib/offline-queue";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -16,6 +17,11 @@ export function JobCompletionForm({ jobId }: Props) {
   const [pending, startTransition] = useTransition();
 
   function handleComplete() {
+    if (isOffline()) {
+      enqueue({ type: "complete", jobId, notes });
+      toast.success("Completion saved offline — will sync when back online");
+      return;
+    }
     startTransition(async () => {
       const result = await completeJobFromField(jobId, notes);
       if (result?.error) toast.error(result.error);

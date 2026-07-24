@@ -1,0 +1,10 @@
+{
+  "name": "BuildStream Field",
+  "short_name": "BuildStream",
+  "description": "Field service app for operatives — works offline on site.",
+  "start_url": "/field",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f97316"
+}

@@ -13,6 +13,11 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "BuildStream CRM",
   description: "Construction management CRM",
+  manifest: "/manifest.webmanifest",
+};
+
+export const viewport = {
+  themeColor: "#f97316",
 };
 
 export default function RootLayout({
