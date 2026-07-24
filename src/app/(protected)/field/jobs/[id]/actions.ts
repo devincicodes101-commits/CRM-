@@ -4,6 +4,45 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { uploadFile } from "@/lib/storage";
 
+// Field operative / contractor requests extra work beyond the original scope.
+export async function createExtraWorkRequest(
+  jobId: string,
+  description: string,
+  amount: number,
+): Promise<{ error: string } | { ok: true }> {
+  if (!description.trim()) return { error: "Describe the extra work" };
+  if (!amount || amount <= 0) return { error: "Enter an amount greater than 0" };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data: job } = await supabase
+    .from("jobs")
+    .select("title, assigned_contractor_id, assigned_contractor_user_id")
+    .eq("id", jobId)
+    .single<{ title: string | null; assigned_contractor_id: string | null; assigned_contractor_user_id: string | null }>();
+  if (!job) return { error: "Job not found" };
+  if (!job.assigned_contractor_id)
+    return { error: "Extra-work requests are only available on contractor-assigned jobs." };
+
+  const { error } = await supabase.from("extra_work_requests").insert({
+    job_id: jobId,
+    job_title: job.title,
+    contractor_id: job.assigned_contractor_id,
+    contractor_user_id: job.assigned_contractor_user_id,
+    description: description.trim(),
+    amount,
+    status: "pending",
+    created_by_id: user.id,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath(`/field/jobs/${jobId}`);
+  revalidatePath(`/jobs/${jobId}`);
+  return { ok: true };
+}
+
 // Operative uploads a site photo from the field — stored in the job-photos
 // bucket and appended to the job's client_photos.
 export async function uploadFieldPhoto(

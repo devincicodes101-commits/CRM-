@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AsyncButton } from "@/components/ui/async-button";
-import { updateJobStatus, approveReschedule, rejectReschedule } from "@/app/(protected)/jobs/actions";
+import { updateJobStatus, approveReschedule, rejectReschedule, decideExtraWorkRequest } from "@/app/(protected)/jobs/actions";
 import { createInvoiceFromJob } from "@/app/(protected)/invoices/actions";
 import { BidPanel } from "@/components/contractors/bid-panel";
 import { JobMessagesPanel, type JobMessage } from "@/components/jobs/job-messages-panel";
@@ -63,6 +63,13 @@ export default async function JobDetailPage({
     .eq("job_id", id)
     .order("created_date", { ascending: false })
     .returns<RescheduleRequest[]>();
+
+  const { data: extraWork } = await supabase
+    .from("extra_work_requests")
+    .select("id, description, amount, status, created_date")
+    .eq("job_id", id)
+    .order("created_date", { ascending: false })
+    .returns<{ id: string; description: string; amount: number; status: string; created_date: string }[]>();
 
   const [{ data: bids }, { data: subcontractors }, { data: jobMessages }] = await Promise.all([
     supabase.from("job_bids").select("*").eq("job_id", id).order("created_date", { ascending: false }).returns<JobBid[]>(),
@@ -230,6 +237,28 @@ export default async function JobDetailPage({
                   Reject
                 </AsyncButton>
               </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {extraWork && extraWork.length > 0 && (
+        <div className="rounded-xl border bg-card p-4 space-y-3">
+          <h2 className="font-semibold text-sm">Extra Work Requests</h2>
+          {extraWork.map((r) => (
+            <div key={r.id} className="flex items-start justify-between gap-4 border-b last:border-0 pb-3 last:pb-0">
+              <div className="text-sm min-w-0">
+                <p className="font-medium">£{Number(r.amount).toLocaleString("en-GB", { minimumFractionDigits: 2 })}</p>
+                <p className="text-muted-foreground">{r.description}</p>
+              </div>
+              {r.status === "pending" ? (
+                <div className="flex gap-2 shrink-0">
+                  <AsyncButton action={decideExtraWorkRequest.bind(null, r.id, "approved")} size="xs">Approve</AsyncButton>
+                  <AsyncButton action={decideExtraWorkRequest.bind(null, r.id, "rejected")} variant="outline" size="xs">Reject</AsyncButton>
+                </div>
+              ) : (
+                <Badge variant={r.status === "approved" ? "default" : "outline"} className="shrink-0 capitalize">{r.status}</Badge>
+              )}
             </div>
           ))}
         </div>

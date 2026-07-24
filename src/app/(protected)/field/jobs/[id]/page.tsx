@@ -8,6 +8,7 @@ import { ChecklistPanel } from "@/components/field/checklist-panel";
 import { MaterialsLogger } from "@/components/field/materials-logger";
 import { JobCompletionForm } from "@/components/field/job-completion-form";
 import { FieldPhotoUpload } from "@/components/field/photo-upload";
+import { ExtraWorkForm } from "@/components/field/extra-work-form";
 import type { Job } from "@/lib/schemas/jobs";
 
 const STATUS_VARIANT = {
@@ -196,6 +197,13 @@ export default async function FieldJobPage({
           disabled={isComplete}
         />
       </div>
+
+      {/* Extra work (contractor jobs only) */}
+      {job.assigned_contractor_id && !isComplete && (
+        <div className="rounded-xl border bg-card p-4">
+          <ExtraWorkForm jobId={job.id} />
+        </div>
+      )}
 
       {/* Job value */}
       {job.total_value > 0 && (

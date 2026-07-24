@@ -166,3 +166,27 @@ export async function rejectReschedule(
   if (error) return { error: error.message };
   revalidatePath(`/jobs/${jobId}`);
 }
+// Admin approves or rejects an extra-work request.
+export async function decideExtraWorkRequest(
+  id: string,
+  decision: "approved" | "rejected",
+): Promise<{ error: string } | void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data: req } = await supabase
+    .from("extra_work_requests")
+    .select("job_id")
+    .eq("id", id)
+    .single<{ job_id: string }>();
+
+  const { error } = await supabase
+    .from("extra_work_requests")
+    .update({ status: decision, decided_at: new Date().toISOString(), decided_by: user.id })
+    .eq("id", id);
+  if (error) return { error: error.message };
+
+  if (req) revalidatePath(`/jobs/${req.job_id}`);
+  revalidatePath("/jobs");
+}
