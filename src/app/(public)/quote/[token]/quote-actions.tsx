@@ -3,7 +3,9 @@
 import { useTransition, useState } from "react";
 import { toast } from "sonner";
 import { CheckCircle, XCircle } from "lucide-react";
-import { acceptQuotePublic, declineQuotePublic } from "./actions";
+import { getBookingSuggestions, declineQuotePublic } from "./actions";
+import { BookingPanel } from "./booking-panel";
+import type { DateSuggestion } from "@/lib/booking";
 import { Button } from "@/components/ui/button";
 
 type Props = { token: string };
@@ -11,17 +13,18 @@ type Props = { token: string };
 export function QuoteActions({ token }: Props) {
   const [pending, startTransition] = useTransition();
   const [action, setAction] = useState<"accept" | "decline" | null>(null);
-  const [done, setDone] = useState<"accepted" | "declined" | null>(null);
+  const [done, setDone] = useState<"declined" | null>(null);
+  const [suggestions, setSuggestions] = useState<DateSuggestion[] | null>(null);
 
   function handleAccept() {
     setAction("accept");
     startTransition(async () => {
-      const result = await acceptQuotePublic(token);
-      if (result?.error) {
+      const result = await getBookingSuggestions(token);
+      if ("error" in result) {
         toast.error(result.error);
         setAction(null);
       } else {
-        setDone("accepted");
+        setSuggestions(result.suggestions);
       }
     });
   }
@@ -39,16 +42,9 @@ export function QuoteActions({ token }: Props) {
     });
   }
 
-  if (done === "accepted") {
-    return (
-      <div className="rounded-xl border border-green-300 bg-green-50 dark:bg-green-950/20 dark:border-green-700 p-6 text-center space-y-2">
-        <CheckCircle className="size-10 text-green-600 dark:text-green-400 mx-auto" />
-        <p className="font-semibold text-green-800 dark:text-green-200 text-lg">Quote Accepted!</p>
-        <p className="text-sm text-green-700 dark:text-green-300">
-          Thank you for accepting. We'll be in touch shortly to confirm your booking.
-        </p>
-      </div>
-    );
+  // After Accept, show the date picker (which books the job on confirm).
+  if (suggestions) {
+    return <BookingPanel token={token} suggestions={suggestions} />;
   }
 
   if (done === "declined") {
@@ -56,7 +52,7 @@ export function QuoteActions({ token }: Props) {
       <div className="rounded-xl border bg-muted p-6 text-center space-y-2">
         <p className="font-semibold text-muted-foreground text-lg">Quote Declined</p>
         <p className="text-sm text-muted-foreground">
-          You have declined this quote. Please contact us if you'd like to discuss your options.
+          You have declined this quote. Please contact us if you&apos;d like to discuss your options.
         </p>
       </div>
     );
@@ -67,7 +63,7 @@ export function QuoteActions({ token }: Props) {
       <div className="text-center space-y-1">
         <h2 className="font-semibold text-base">Ready to proceed?</h2>
         <p className="text-sm text-muted-foreground">
-          Accept this quote to confirm your booking, or decline if you'd like to pass.
+          Accept this quote to confirm your booking, or decline if you&apos;d like to pass.
         </p>
       </div>
       <div className="flex flex-col sm:flex-row gap-3">
