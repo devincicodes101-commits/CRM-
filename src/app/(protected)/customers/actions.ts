@@ -44,3 +44,35 @@ export async function deleteCustomer(id: string): Promise<{ error: string } | vo
   revalidatePath("/customers");
   redirect("/customers");
 }
+// GDPR data export — gather everything the CRM holds about a customer.
+export async function exportCustomerData(
+  id: string,
+): Promise<{ json: string } | { error: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data: customer } = await supabase.from("customers").select("*").eq("id", id).single();
+  if (!customer) return { error: "Customer not found" };
+
+  const email = customer.email ?? "__none__";
+  const [quotes, jobs, invoices, leads, messages] = await Promise.all([
+    supabase.from("quotes").select("*").eq("customer_id", id),
+    supabase.from("jobs").select("*").eq("customer_id", id),
+    supabase.from("invoices").select("*").eq("customer_id", id),
+    supabase.from("leads").select("*").eq("email", email),
+    supabase.from("messages").select("*").eq("customer_email", email),
+  ]);
+
+  const bundle = {
+    exported_at: new Date().toISOString(),
+    exported_by: user.email,
+    customer,
+    quotes: quotes.data ?? [],
+    jobs: jobs.data ?? [],
+    invoices: invoices.data ?? [],
+    leads: leads.data ?? [],
+    messages: messages.data ?? [],
+  };
+  return { json: JSON.stringify(bundle, null, 2) };
+}

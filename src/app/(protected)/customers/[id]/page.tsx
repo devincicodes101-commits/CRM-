@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CopyLinkButton } from "@/components/shared/copy-link-button";
+import { ExportDataButton } from "@/components/customers/export-data-button";
 import type { Customer } from "@/lib/schemas/customers";
 
 const STATUS_VARIANT = {
@@ -70,6 +71,7 @@ export default async function CustomerDetailPage({
               variant="outline"
             />
           )}
+          <ExportDataButton customerId={id} customerName={customer.name} />
           <Link
             href={`/customers/${id}/edit`}
             className={cn(buttonVariants({ variant: "outline" }))}
