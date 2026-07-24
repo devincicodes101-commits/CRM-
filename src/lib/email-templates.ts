@@ -19,7 +19,11 @@ export type Branding = {
   vatNumber: string | null;
   companyNumber: string | null;
   quoteFooterText: string | null;
+  invoiceFooterText: string | null;
   termsAndConditions: string | null;
+  bankAccountName: string | null;
+  bankSortCode: string | null;
+  bankAccountNumber: string | null;
   workingDays: number[];
   from: string;
   /** The public URL of THIS app (Vercel), used to build customer links.
@@ -41,7 +45,11 @@ export type BrandingRow = {
   vat_number: string | null;
   company_number: string | null;
   quote_footer_text: string | null;
+  invoice_footer_text: string | null;
   terms_and_conditions: string | null;
+  bank_account_name: string | null;
+  bank_sort_code: string | null;
+  bank_account_number: string | null;
   working_days: number[] | null;
 };
 
@@ -55,7 +63,7 @@ export async function getBranding(supabase: SupabaseClient): Promise<Branding> {
   const { data } = await supabase
     .from("company_settings")
     .select(
-      "company_name, tagline, logo_url, primary_color, email, sender_email, phone, address, city, postcode, vat_number, company_number, quote_footer_text, terms_and_conditions, working_days",
+      "company_name, tagline, logo_url, primary_color, email, sender_email, phone, address, city, postcode, vat_number, company_number, quote_footer_text, invoice_footer_text, terms_and_conditions, bank_account_name, bank_sort_code, bank_account_number, working_days",
     )
     .limit(1)
     .maybeSingle<BrandingRow>();
@@ -74,7 +82,11 @@ export async function getBranding(supabase: SupabaseClient): Promise<Branding> {
     vatNumber: data?.vat_number || null,
     companyNumber: data?.company_number || null,
     quoteFooterText: data?.quote_footer_text || null,
+    invoiceFooterText: data?.invoice_footer_text || null,
     termsAndConditions: data?.terms_and_conditions || null,
+    bankAccountName: data?.bank_account_name || null,
+    bankSortCode: data?.bank_sort_code || null,
+    bankAccountNumber: data?.bank_account_number || null,
     workingDays: data?.working_days ?? [1, 2, 3, 4, 5],
     from: `${companyName} <${senderEmail(data ?? null)}>`,
     appBaseUrl: (process.env.NEXT_PUBLIC_BASE_URL ?? "").replace(/\/$/, ""),
@@ -266,6 +278,117 @@ export function salesBookedNotifyHtml(
     ${d.jobAddress ? `<p><strong>Address:</strong> ${esc(d.jobAddress)}</p>` : ""}
     <p style="color:#666">The job has been automatically added to the calendar.</p>
   </div>`;
+}
+
+export type InvoiceEmailData = {
+  invoice_number: string;
+  customer_name: string | null;
+  customer_address: string | null;
+  due_date: string | null;
+  items: { service_name: string; quantity?: number; unit_price?: number; total?: number }[];
+  subtotal: number;
+  vat_rate: number;
+  vat_amount: number;
+  total: number;
+  amount_paid: number;
+};
+
+export function invoiceEmailHtml(inv: InvoiceEmailData, b: Branding): string {
+  const dueDate = inv.due_date
+    ? new Date(inv.due_date).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      })
+    : null;
+  const amountDue = Math.max(0, (inv.total ?? 0) - (inv.amount_paid ?? 0));
+
+  const itemRows = (inv.items ?? [])
+    .map(
+      (it) => `<tr>
+      <td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:14px;color:#333">${esc(it.service_name)}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:14px;color:#333;text-align:center">${it.quantity ?? 1}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:14px;color:#333;text-align:right">${gbp(it.unit_price ?? it.total ?? 0)}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:14px;font-weight:bold;color:#333;text-align:right">${gbp(it.total ?? 0)}</td>
+    </tr>`,
+    )
+    .join("");
+
+  const hasBank = b.bankAccountName || b.bankSortCode || b.bankAccountNumber;
+  const bankBlock = hasBank
+    ? `<tr><td style="padding:0 32px 24px">
+      <div style="border-left:4px solid #2563eb;background:#eff6ff;border-radius:6px;padding:16px 20px">
+        <p style="margin:0 0 10px;color:#1e40af;font-weight:700;font-size:13px;letter-spacing:0.5px">BANK TRANSFER DETAILS</p>
+        ${b.bankAccountName ? `<p style="margin:0 0 4px;font-size:13px;color:#333"><span style="color:#888;display:inline-block;width:90px">Payable To:</span> <strong>${esc(b.bankAccountName)}</strong></p>` : ""}
+        ${b.bankSortCode ? `<p style="margin:0 0 4px;font-size:13px;color:#333"><span style="color:#888;display:inline-block;width:90px">Sort Code:</span> <strong>${esc(b.bankSortCode)}</strong></p>` : ""}
+        ${b.bankAccountNumber ? `<p style="margin:0;font-size:13px;color:#333"><span style="color:#888;display:inline-block;width:90px">Account:</span> <strong>${esc(b.bankAccountNumber)}</strong></p>` : ""}
+      </div>
+    </td></tr>`
+    : "";
+
+  const termsBlock = b.termsAndConditions
+    ? `<tr><td style="padding:0 32px 24px">
+      <p style="margin:0;font-size:11px;color:#999;line-height:1.6"><strong style="color:#666">Terms &amp; Conditions:</strong> ${esc(b.termsAndConditions)}</p>
+    </td></tr>`
+    : "";
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,Helvetica,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:30px 0"><tr><td align="center">
+  <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;max-width:600px;width:100%">
+    <tr><td style="background:#1a1a1a;padding:28px 32px">
+      <table width="100%" cellpadding="0" cellspacing="0"><tr>
+        <td>${logoBlock(b)}</td>
+        <td align="right"><span style="color:rgba(255,255,255,0.85);font-size:15px;letter-spacing:1px">INVOICE</span></td>
+      </tr></table>
+    </td></tr>
+    <tr><td style="padding:28px 32px;border-bottom:1px solid #eee">
+      <table width="100%" cellpadding="0" cellspacing="0"><tr>
+        <td valign="top" width="55%">
+          <p style="margin:0 0 4px;color:#888;font-size:12px;text-transform:uppercase">Billed To</p>
+          <p style="margin:0;font-size:15px;font-weight:bold;color:#222">${esc(inv.customer_name ?? "")}</p>
+          ${inv.customer_address ? `<p style="margin:4px 0 0;font-size:13px;color:#666">${esc(inv.customer_address)}</p>` : ""}
+        </td>
+        <td valign="top" width="45%" align="right">
+          <p style="margin:0 0 4px;color:#888;font-size:12px;text-transform:uppercase">Invoice Number</p>
+          <p style="margin:0 0 12px;font-size:15px;font-weight:bold;color:#222">${esc(inv.invoice_number)}</p>
+          ${dueDate ? `<p style="margin:0 0 2px;color:#888;font-size:12px;text-transform:uppercase">Due Date</p><p style="margin:0;font-size:14px;font-weight:bold;color:${b.brandColor}">${dueDate}</p>` : ""}
+        </td>
+      </tr></table>
+    </td></tr>
+    <tr><td style="padding:24px 32px 8px">
+      <p style="margin:0;font-size:15px;color:#333">Hi <strong>${esc(inv.customer_name ?? "there")}</strong>,</p>
+      <p style="margin:10px 0 0;font-size:14px;color:#555;line-height:1.6">Please find your invoice details below. Kindly arrange payment by the due date shown above.</p>
+    </td></tr>
+    ${
+      itemRows
+        ? `<tr><td style="padding:16px 32px">
+      <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eee;border-radius:6px;overflow:hidden">
+        <thead><tr style="background:#f9f9f9">
+          <th style="padding:10px 12px;text-align:left;font-size:12px;color:#888;text-transform:uppercase;font-weight:600">Description</th>
+          <th style="padding:10px 12px;text-align:center;font-size:12px;color:#888;text-transform:uppercase;font-weight:600">Qty</th>
+          <th style="padding:10px 12px;text-align:right;font-size:12px;color:#888;text-transform:uppercase;font-weight:600">Unit Price</th>
+          <th style="padding:10px 12px;text-align:right;font-size:12px;color:#888;text-transform:uppercase;font-weight:600">Total</th>
+        </tr></thead>
+        <tbody>${itemRows}</tbody>
+      </table>
+    </td></tr>`
+        : ""
+    }
+    <tr><td style="padding:0 32px 20px">
+      <table width="100%" cellpadding="0" cellspacing="0"><tr><td width="55%"></td><td width="45%">
+        <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eee;border-radius:6px;overflow:hidden">
+          <tr><td style="padding:8px 12px;font-size:13px;color:#555">Subtotal</td><td style="padding:8px 12px;font-size:13px;text-align:right">${gbp(inv.subtotal)}</td></tr>
+          <tr style="background:#f9f9f9"><td style="padding:8px 12px;font-size:13px;color:#555">VAT (${inv.vat_rate ?? 20}%)</td><td style="padding:8px 12px;font-size:13px;text-align:right">${gbp(inv.vat_amount)}</td></tr>
+          <tr style="background:${b.brandColor}"><td style="padding:12px;font-size:15px;font-weight:bold;color:#fff">Amount Due</td><td style="padding:12px;font-size:15px;font-weight:bold;color:#fff;text-align:right">${gbp(amountDue)}</td></tr>
+        </table>
+      </td></tr></table>
+    </td></tr>
+    ${bankBlock}
+    ${termsBlock}
+    ${footerBlock(b)}
+  </table>
+</td></tr></table></body></html>`;
 }
 
 export function photoInviteHtml(

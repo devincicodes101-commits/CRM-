@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Pencil, Send, CheckCircle, XCircle } from "lucide-react";
+import { ChevronLeft, Pencil, Send, CheckCircle, XCircle, Receipt } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { sendQuote, updateQuoteStatus } from "@/app/(protected)/quotes/actions";
+import { createInvoiceFromQuote } from "@/app/(protected)/invoices/actions";
 import { CopyLinkButton } from "@/components/shared/copy-link-button";
 import type { Quote } from "@/lib/schemas/quotes";
 
@@ -90,11 +91,16 @@ export default async function QuoteDetailPage({
           )}
           {quote.status === "sent" && (
             <CopyLinkButton
-              url={`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/quote/${quote.quote_number}`}
+              url={`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/quote/${quote.public_token}`}
               label="Copy Quote Link"
               variant="outline"
               size="sm"
             />
+          )}
+          {quote.status === "accepted" && (
+            <AsyncButton action={createInvoiceFromQuote.bind(null, id)} size="sm">
+              <Receipt className="size-4" /> Convert to Invoice
+            </AsyncButton>
           )}
           <Link
             href={`/quotes/${id}/edit`}

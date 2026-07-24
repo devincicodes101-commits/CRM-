@@ -80,7 +80,15 @@ export function JobForm({ job, customers, quotes = [] }: Props) {
             notes: "",
             client_photos: [],
             materials_used: [],
-            checklist: [],
+            // Default field checklist (operatives tick these off on site). Remove any
+            // that don't apply — mirrors Base44's auto-populated checklist.
+            checklist: [
+              { label: "Site safety check done", checked: false },
+              { label: "Customer briefed", checked: false },
+              { label: "Work area cleared", checked: false },
+              { label: "Photos taken", checked: false },
+              { label: "Waste removed / disposed", checked: false },
+            ],
             reminder_24h_sent: false,
             arrival_confirmed: false,
           },

@@ -7,6 +7,7 @@ import { CheckInButton } from "@/components/field/check-in-button";
 import { ChecklistPanel } from "@/components/field/checklist-panel";
 import { MaterialsLogger } from "@/components/field/materials-logger";
 import { JobCompletionForm } from "@/components/field/job-completion-form";
+import { FieldPhotoUpload } from "@/components/field/photo-upload";
 import type { Job } from "@/lib/schemas/jobs";
 
 const STATUS_VARIANT = {
@@ -172,6 +173,16 @@ export default async function FieldJobPage({
         <ChecklistPanel
           jobId={job.id}
           initialItems={job.checklist ?? []}
+          disabled={isComplete}
+        />
+      </div>
+
+      {/* Site photos */}
+      <div className="rounded-xl border bg-card p-4 space-y-3">
+        <h2 className="font-semibold text-sm">Site Photos</h2>
+        <FieldPhotoUpload
+          jobId={job.id}
+          photos={(job.client_photos ?? []) as { url: string; caption?: string }[]}
           disabled={isComplete}
         />
       </div>

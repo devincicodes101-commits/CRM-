@@ -212,7 +212,8 @@ export function QuoteBuilder({ quote, customers, services }: Props) {
           </div>
         </div>
 
-        <Table>
+        <div className="overflow-x-auto">
+        <Table className="min-w-[620px]">
           <TableHeader>
             <TableRow>
               <TableHead className="w-[240px]">Service / Description</TableHead>
@@ -294,6 +295,7 @@ export function QuoteBuilder({ quote, customers, services }: Props) {
             })}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       {/* Discount + VAT + Totals */}
