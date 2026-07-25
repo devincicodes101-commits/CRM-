@@ -5,6 +5,7 @@ import { Send } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { postOfficeMessage } from "@/app/(protected)/jobs/actions";
+import { useRealtimeRefresh } from "@/lib/use-realtime";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,7 @@ const ROLE_LABEL: Record<string, string> = { office: "Office", contractor: "Cont
 export function JobMessagesPanel({ jobId, messages }: { jobId: string; messages: JobMessage[] }) {
   const [text, setText] = useState("");
   const [pending, start] = useTransition();
+  useRealtimeRefresh(["job_messages"], { column: "job_id", value: jobId });
 
   function send() {
     if (!text.trim()) return;

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Inbox, Send, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { replyInInbox, markInboxRead } from "./actions";
+import { useRealtimeRefresh } from "@/lib/use-realtime";
 
 export type InboxConversation = {
   key: string;
@@ -22,6 +23,7 @@ export type InboxConversation = {
 
 export function InboxClient({ conversations }: { conversations: InboxConversation[] }) {
   const router = useRouter();
+  useRealtimeRefresh(["messages"]);
   const [activeKey, setActiveKey] = useState<string | null>(conversations[0]?.key ?? null);
   const [reply, setReply] = useState("");
   const [pending, start] = useTransition();

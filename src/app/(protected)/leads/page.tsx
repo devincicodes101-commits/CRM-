@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Plus, Download, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { RealtimeRefresher } from "@/components/shared/realtime-refresher";
 import type { Lead } from "@/lib/schemas/leads";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -45,6 +46,7 @@ export default async function LeadsPage({
 
   return (
     <div className="p-6 space-y-6 max-w-6xl">
+      <RealtimeRefresher tables={["leads"]} />
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
