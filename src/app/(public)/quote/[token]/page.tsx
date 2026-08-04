@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
+import { getBranding } from "@/lib/email-templates";
 import { QuoteActions } from "./quote-actions";
 import type { Quote } from "@/lib/schemas/quotes";
 
@@ -22,6 +23,8 @@ export default async function PublicQuotePage({
 
   if (!quote) notFound();
 
+  const branding = await getBranding(supabase);
+
   const isExpired =
     quote.valid_until && new Date(quote.valid_until) < new Date();
   const canRespond = quote.status === "sent" && !isExpired;
@@ -38,6 +41,29 @@ export default async function PublicQuotePage({
 
   return (
     <div className="space-y-6">
+      {/* Company branding */}
+      <div className="rounded-2xl border overflow-hidden">
+        <div className="bg-neutral-900 text-white p-5 flex items-center gap-4 flex-wrap">
+          {branding.logoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={branding.logoUrl}
+              alt={branding.companyName}
+              className="size-16 rounded-lg object-contain bg-white/5 p-1.5 shrink-0"
+            />
+          )}
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold leading-tight">{branding.companyName}</h2>
+            {branding.tagline && <p className="text-sm text-white/70">{branding.tagline}</p>}
+            {(branding.phone || branding.email) && (
+              <p className="text-xs text-white/60 mt-1">
+                {[branding.phone, branding.email].filter(Boolean).join("  ·  ")}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Header */}
       <div className="rounded-2xl border bg-background p-6 space-y-4">
         <div className="flex items-start justify-between gap-4 flex-wrap">

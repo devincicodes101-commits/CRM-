@@ -108,9 +108,11 @@ function logoBlock(b: Branding): string {
 }
 
 function footerBlock(b: Branding): string {
-  const contact = b.email
-    ? `<a href="mailto:${esc(b.email)}" style="color:#fff;text-decoration:underline">${esc(b.email)}</a>`
-    : "";
+  const parts = [
+    b.phone ? esc(b.phone) : "",
+    b.email ? `<a href="mailto:${esc(b.email)}" style="color:#fff;text-decoration:underline">${esc(b.email)}</a>` : "",
+  ].filter(Boolean);
+  const contact = parts.join("  ·  ");
   const extra = b.quoteFooterText
     ? `<p style="margin:8px 0 0;font-size:12px;color:rgba(255,255,255,0.8);text-align:center">${esc(b.quoteFooterText)}</p>`
     : "";
