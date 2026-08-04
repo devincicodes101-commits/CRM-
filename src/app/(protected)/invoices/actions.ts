@@ -12,6 +12,7 @@ import {
   generateInvoicePdfBase64,
   type PdfInvoice,
 } from "@/lib/invoice-pdf";
+import { createContractorCommissionInvoice } from "@/lib/contractor-commission";
 
 // §8/§9/§10 — generate a white-label invoice for a job, attach a real PDF to the
 // email, persist it (deduped by job_id + invoice_type), and honour invoice_mode.
@@ -158,10 +159,16 @@ export async function generateAndEmailInvoice(
     });
   }
 
-  // §9 commission guard: contractor commission only fires under white-label.
-  // (Contractor commission-invoice creation is tracked separately — see PLAN.)
-  const shouldRaiseCommission = invoiceMode === "white_label" && !!job.assigned_contractor_id;
-  void shouldRaiseCommission;
+  // §9 commission guard: raise the contractor agency-fee invoice only under
+  // white-label, only on the standard (not deposit) invoice, and only when a
+  // contractor is assigned. Best-effort — never blocks the customer invoice.
+  if (invoiceMode === "white_label" && job.assigned_contractor_id && !isDeposit) {
+    await createContractorCommissionInvoice(supabase, {
+      jobId: job.id,
+      customerInvoiceId: invoiceId,
+      createdById: user.id,
+    });
+  }
 
   revalidatePath(`/jobs/${jobId}`);
   revalidatePath("/invoices");

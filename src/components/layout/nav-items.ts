@@ -59,6 +59,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Route Planning", href: "/route-planning", icon: Map, roles: ["admin", "user"] },
   { label: "Commissions", href: "/commissions", icon: Percent, roles: ["admin", "user"] },
   { label: "Commission Tracking", href: "/commission-invoices", icon: ClipboardList, roles: ["admin", "user"] },
+  { label: "Contractor Commissions", href: "/contractor-commissions", icon: HardHat, roles: ["admin", "user"] },
   { label: "Performance", href: "/performance", icon: Trophy, roles: ["admin", "user"] },
   { label: "Team Output", href: "/team-output", icon: Activity, roles: ["admin", "user"] },
   { label: "Reminders", href: "/reminders", icon: Bell, roles: ["admin", "user"] },
