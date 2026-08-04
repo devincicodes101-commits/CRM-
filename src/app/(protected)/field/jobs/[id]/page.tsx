@@ -9,6 +9,8 @@ import { MaterialsLogger } from "@/components/field/materials-logger";
 import { JobCompletionForm } from "@/components/field/job-completion-form";
 import { FieldPhotoUpload } from "@/components/field/photo-upload";
 import { ExtraWorkForm } from "@/components/field/extra-work-form";
+import { FieldAuctionPanel } from "@/components/field/auction-panel";
+import { AUCTION } from "@/lib/auction";
 import type { Job } from "@/lib/schemas/jobs";
 
 const STATUS_VARIANT = {
@@ -36,6 +38,24 @@ export default async function FieldJobPage({
     .single<Job>();
 
   if (!job) notFound();
+
+  // §3/§4 — is the viewer a contractor with a live auction to bid on, or an
+  // open invite to respond to on this job?
+  const { data: { user } } = await supabase.auth.getUser();
+  let myBid: { status: string; is_auction_bid: boolean } | null = null;
+  if (user) {
+    const { data } = await supabase
+      .from("contractor_bids")
+      .select("status, is_auction_bid")
+      .eq("job_id", id)
+      .eq("contractor_user_id", user.id)
+      .maybeSingle<{ status: string; is_auction_bid: boolean }>();
+    myBid = data;
+  }
+  const isAuctionLive = job.auction_status === AUCTION.LIVE;
+  const iAmAssigned = !!user && job.assigned_contractor_user_id === user.id;
+  const showAuction = isAuctionLive && !iAmAssigned;
+  const showInvite = !isAuctionLive && myBid?.status === "invited" && !iAmAssigned;
 
   const isActive = ["scheduled", "in_progress", "on_hold"].includes(job.status);
   const isComplete = job.status === "completed";
@@ -86,6 +106,17 @@ export default async function FieldJobPage({
           )}
         </div>
       </div>
+
+      {/* §3/§4 Auction bidding / invite response */}
+      {(showAuction || showInvite) && (
+        <FieldAuctionPanel
+          jobId={job.id}
+          mode={showAuction ? "auction" : "invite"}
+          currentBid={job.auction_current_bid ?? job.auction_start_price ?? 0}
+          endsAt={job.auction_ends_at ?? null}
+          alreadyResponded={myBid?.status === "interested" || myBid?.status === "declined"}
+        />
+      )}
 
       {/* Key info */}
       <div className="rounded-xl border bg-card p-4 space-y-3 text-sm">

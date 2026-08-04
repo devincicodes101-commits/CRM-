@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition, useState, useMemo } from "react";
-import { useForm, useFieldArray, Controller } from "react-hook-form";
+import { useForm, useFieldArray, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -10,7 +10,8 @@ import { jobInsertSchema } from "@/lib/schemas/jobs";
 import type { Job } from "@/lib/schemas/jobs";
 import type { Customer } from "@/lib/schemas/customers";
 import type { Quote } from "@/lib/schemas/quotes";
-import { createJob, updateJob } from "@/app/(protected)/jobs/actions";
+import { createJob, updateJob, createJobWithAssignment } from "@/app/(protected)/jobs/actions";
+import { AssignmentSelector, type Assignment } from "@/components/jobs/assignment-selector";
 import { PostcodeLookup } from "@/components/shared/postcode-lookup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -127,6 +128,12 @@ export function JobForm({
   const { fields: checklistFields, append: appendChecklist, remove: removeChecklist } =
     useFieldArray({ control, name: "checklist" });
 
+  // §2 three-way assignment (create mode only). Edit mode keeps the plain selects.
+  const [assignment, setAssignment] = useState<Assignment>({ mode: "operative", operative: null });
+  const watchedAddress = useWatch({ control, name: "address" });
+  const watchedStart = useWatch({ control, name: "start_date" });
+  const watchedValue = useWatch({ control, name: "total_value" });
+
   function handleCustomerChange(customerId: string | null) {
     if (!customerId) return;
     setValue("customer_id", customerId || undefined);
@@ -158,10 +165,39 @@ export function JobForm({
 
   function onSubmit(values: FormValues) {
     // datetime-local strings are coerced to ISO by the zod schema (isoDateTime*).
+    if (isEdit) {
+      startTransition(async () => {
+        const result = await updateJob(job.id, values);
+        if (result?.error) toast.error(result.error);
+      });
+      return;
+    }
+
+    // Create mode: branch on the chosen assignment.
+    if (assignment.mode === "operative") {
+      values.assigned_team = assignment.operative;
+    } else if (assignment.mode === "contractor" && !assignment.contractorId) {
+      toast.error("Select a contractor, or choose another assignment mode.");
+      return;
+    }
+
     startTransition(async () => {
-      const result = isEdit
-        ? await updateJob(job.id, values)
-        : await createJob(values);
+      let result: { error: string } | void;
+      if (assignment.mode === "operative") {
+        result = await createJob(values);
+      } else if (assignment.mode === "contractor") {
+        result = await createJobWithAssignment(values, {
+          mode: "contractor",
+          contractorId: assignment.contractorId!,
+          payPercent: assignment.payPercent,
+        });
+      } else {
+        result = await createJobWithAssignment(values, {
+          mode: "auction",
+          startPrice: assignment.startPrice,
+          durationMins: assignment.durationMins,
+        });
+      }
       if (result?.error) toast.error(result.error);
     });
   }
@@ -307,6 +343,7 @@ export function JobForm({
             <Label htmlFor="end_date">End Date/Time</Label>
             <Input id="end_date" type="datetime-local" {...register("end_date")} />
           </div>
+          {isEdit && (
           <div className="space-y-1.5">
             <Label>Assign Operative</Label>
             {operatives.length > 0 ? (
@@ -334,6 +371,7 @@ export function JobForm({
               <Input {...register("assigned_team")} placeholder="Name or team" />
             )}
           </div>
+          )}
           <div className="space-y-1.5">
             <Label>Assign Vehicle</Label>
             {vehicles.length > 0 ? (
@@ -355,7 +393,7 @@ export function JobForm({
               <Input {...register("assigned_vehicle")} placeholder="Vehicle reg or name" />
             )}
           </div>
-          {contractors.length > 0 && (
+          {isEdit && contractors.length > 0 && (
             <div className="space-y-1.5">
               <Label>Assign Contractor (External)</Label>
               <Controller
@@ -434,6 +472,18 @@ export function JobForm({
           </div>
         </div>
       </div>
+
+      {/* §2 three-way assignment (create only) */}
+      {!isEdit && (
+        <AssignmentSelector
+          operatives={operatives}
+          jobPostcodeSource={typeof watchedAddress === "string" ? watchedAddress : null}
+          jobDateISO={typeof watchedStart === "string" && watchedStart ? watchedStart : null}
+          totalValue={Number(watchedValue) || 0}
+          value={assignment}
+          onChange={setAssignment}
+        />
+      )}
 
       {/* Checklist */}
       <div className="rounded-xl border bg-card p-4 space-y-3">

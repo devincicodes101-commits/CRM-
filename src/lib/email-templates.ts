@@ -405,3 +405,156 @@ export function photoInviteHtml(
     <p style="color:#555">Thanks,<br><strong>${esc(b.companyName)}</strong></p>
   </div>`;
 }
+
+export type ContractorAssignmentData = {
+  contractorName: string;
+  jobTitle: string;
+  jobDateLong: string;
+  customerArea: string | null; // postcode district / town only — never full address
+  jobValue: number;
+  payPercent: number | null;
+  payAmount: number | null;
+  companyShare: number | null;
+  jobLink: string; // deep link into the field app
+};
+
+// §7 Assignment-notification email — sent only when the assigned contractor changes.
+export function contractorAssignmentHtml(d: ContractorAssignmentData, b: Branding): string {
+  const shareRows =
+    d.payPercent != null || d.payAmount != null
+      ? `<tr style="background:#f0fdf4"><td style="padding:10px 12px;font-size:13px;color:#166534">Your Share${
+          d.payPercent != null ? ` (${d.payPercent}%)` : ""
+        }</td><td style="padding:10px 12px;font-size:14px;color:#166534;font-weight:700">${
+          d.payAmount != null ? gbp(d.payAmount) : "—"
+        }</td></tr>${
+          d.companyShare != null
+            ? `<tr><td style="padding:10px 12px;font-size:13px;color:#888">Company Share</td><td style="padding:10px 12px;font-size:14px;color:#333">${gbp(
+                d.companyShare,
+              )}</td></tr>`
+            : ""
+        }`
+      : "";
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,Helvetica,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:30px 0"><tr><td align="center">
+  <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;max-width:600px;width:100%">
+    <tr><td style="background:#1a1a1a;padding:28px 32px">
+      <table width="100%" cellpadding="0" cellspacing="0"><tr>
+        <td>${logoBlock(b)}</td>
+        <td align="right" style="color:rgba(255,255,255,0.85);font-size:13px">NEW JOB ASSIGNED</td>
+      </tr></table>
+    </td></tr>
+    <tr><td style="padding:28px 32px">
+      <h2 style="margin:0 0 8px;color:#1f2937;font-size:22px">You've been assigned a job</h2>
+      <p style="margin:20px 0 0;color:#333">Hi ${esc(d.contractorName)},</p>
+      <p style="margin:12px 0;color:#555;line-height:1.6">A job has been assigned to you. Please review and confirm as soon as you can.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #eee;border-radius:6px;overflow:hidden">
+        <tr style="background:#f9f9f9"><td style="padding:10px 12px;font-size:13px;color:#888;width:130px">Job</td><td style="padding:10px 12px;font-size:14px;color:#333;font-weight:600">${esc(d.jobTitle)}</td></tr>
+        <tr><td style="padding:10px 12px;font-size:13px;color:#888">Date</td><td style="padding:10px 12px;font-size:14px;color:#333;font-weight:600">${esc(d.jobDateLong)}</td></tr>
+        ${d.customerArea ? `<tr style="background:#f9f9f9"><td style="padding:10px 12px;font-size:13px;color:#888">Area</td><td style="padding:10px 12px;font-size:14px;color:#333">${esc(d.customerArea)}</td></tr>` : ""}
+        <tr><td style="padding:10px 12px;font-size:13px;color:#888">Job Value</td><td style="padding:10px 12px;font-size:14px;color:#333">${gbp(d.jobValue)}</td></tr>
+        ${shareRows}
+      </table>
+      <p style="margin:20px 0"><a href="${esc(d.jobLink)}" style="display:inline-block;background:${b.brandColor};color:#fff;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:700">View &amp; Confirm Job</a></p>
+      <p style="color:#555">Best regards,<br><strong>${esc(b.companyName)}</strong></p>
+    </td></tr>
+    ${footerBlock(b)}
+  </table>
+</td></tr></table></body></html>`;
+}
+
+export type AuctionInviteData = {
+  contractorName: string;
+  jobTitle: string;
+  jobDateLong: string;
+  customerArea: string | null;
+  startPrice: number;
+  endsAtLong: string;
+  bidLink: string;
+};
+
+// §3/§4 "available to bid" email — sent to covering contractors when an auction opens.
+export function auctionInviteHtml(d: AuctionInviteData, b: Branding): string {
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,Helvetica,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:30px 0"><tr><td align="center">
+  <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;max-width:600px;width:100%">
+    <tr><td style="background:#1a1a1a;padding:28px 32px">
+      <table width="100%" cellpadding="0" cellspacing="0"><tr>
+        <td>${logoBlock(b)}</td>
+        <td align="right" style="color:rgba(255,255,255,0.85);font-size:13px">JOB AUCTION — OPEN</td>
+      </tr></table>
+    </td></tr>
+    <tr><td style="padding:28px 32px">
+      <h2 style="margin:0 0 8px;color:#1f2937;font-size:22px">A job is up for auction in your area</h2>
+      <p style="margin:20px 0 0;color:#333">Hi ${esc(d.contractorName)},</p>
+      <p style="margin:12px 0;color:#555;line-height:1.6">A job in your coverage area is now open for bidding. Place your bid before the auction closes.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #eee;border-radius:6px;overflow:hidden">
+        <tr style="background:#f9f9f9"><td style="padding:10px 12px;font-size:13px;color:#888;width:130px">Job</td><td style="padding:10px 12px;font-size:14px;color:#333;font-weight:600">${esc(d.jobTitle)}</td></tr>
+        <tr><td style="padding:10px 12px;font-size:13px;color:#888">Date</td><td style="padding:10px 12px;font-size:14px;color:#333;font-weight:600">${esc(d.jobDateLong)}</td></tr>
+        ${d.customerArea ? `<tr style="background:#f9f9f9"><td style="padding:10px 12px;font-size:13px;color:#888">Area</td><td style="padding:10px 12px;font-size:14px;color:#333">${esc(d.customerArea)}</td></tr>` : ""}
+        <tr><td style="padding:10px 12px;font-size:13px;color:#888">Starting Bid</td><td style="padding:10px 12px;font-size:14px;color:#333;font-weight:700">${gbp(d.startPrice)}</td></tr>
+        <tr style="background:#fff7ed"><td style="padding:10px 12px;font-size:13px;color:#9a3412">Closes</td><td style="padding:10px 12px;font-size:14px;color:#9a3412;font-weight:700">${esc(d.endsAtLong)}</td></tr>
+      </table>
+      <p style="margin:20px 0"><a href="${esc(d.bidLink)}" style="display:inline-block;background:${b.brandColor};color:#fff;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:700">Place a Bid</a></p>
+      <p style="color:#555">Best regards,<br><strong>${esc(b.companyName)}</strong></p>
+    </td></tr>
+    ${footerBlock(b)}
+  </table>
+</td></tr></table></body></html>`;
+}
+
+export type BidInviteData = {
+  contractorName: string;
+  jobTitle: string;
+  jobDateLong: string;
+  customerArea: string | null;
+  jobValue: number;
+  bidLink: string;
+};
+
+// §4 generic (non-auction) invite — "you're invited to bid / express interest".
+export function bidInviteHtml(d: BidInviteData, b: Branding): string {
+  return `<div style="font-family:Arial,sans-serif;color:#333;max-width:560px">
+    <h2 style="color:${b.brandColor}">You're invited to a job</h2>
+    <p>Hi ${esc(d.contractorName)},</p>
+    <p style="line-height:1.6">We have a job that may suit you. If you're interested, open it in your app to register your interest, add a note or propose a price.</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #eee;border-radius:6px;overflow:hidden">
+      <tr style="background:#f9f9f9"><td style="padding:10px 12px;font-size:13px;color:#888;width:130px">Job</td><td style="padding:10px 12px;font-size:14px;color:#333;font-weight:600">${esc(d.jobTitle)}</td></tr>
+      <tr><td style="padding:10px 12px;font-size:13px;color:#888">Date</td><td style="padding:10px 12px;font-size:14px;color:#333;font-weight:600">${esc(d.jobDateLong)}</td></tr>
+      ${d.customerArea ? `<tr style="background:#f9f9f9"><td style="padding:10px 12px;font-size:13px;color:#888">Area</td><td style="padding:10px 12px;font-size:14px;color:#333">${esc(d.customerArea)}</td></tr>` : ""}
+      <tr><td style="padding:10px 12px;font-size:13px;color:#888">Job Value</td><td style="padding:10px 12px;font-size:14px;color:#333">${gbp(d.jobValue)}</td></tr>
+    </table>
+    <p style="margin:20px 0"><a href="${esc(d.bidLink)}" style="display:inline-block;background:${b.brandColor};color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:700">View Job &amp; Register Interest</a></p>
+    <p style="color:#555">Best regards,<br><strong>${esc(b.companyName)}</strong></p>
+  </div>`;
+}
+
+export type AuctionResultData = {
+  contractorName: string;
+  jobTitle: string;
+  won: boolean;
+  winningBid: number | null;
+  jobLink: string;
+};
+
+// Auction closed — one to the winner, one to each losing bidder.
+export function auctionResultHtml(d: AuctionResultData, b: Branding): string {
+  const heading = d.won ? "You won the auction! 🎉" : "Auction closed";
+  const body = d.won
+    ? `Congratulations — you won the auction for <strong>${esc(d.jobTitle)}</strong> with a bid of <strong>${gbp(
+        d.winningBid ?? 0,
+      )}</strong>. Please confirm the job using the button below.`
+    : `The auction for <strong>${esc(d.jobTitle)}</strong> has now closed and was awarded to another contractor. Thanks for taking part — we'll be in touch with more opportunities soon.`;
+  return `<div style="font-family:Arial,sans-serif;color:#333;max-width:560px">
+    <h2 style="color:${b.brandColor}">${heading}</h2>
+    <p>Hi ${esc(d.contractorName)},</p>
+    <p style="line-height:1.6">${body}</p>
+    ${
+      d.won
+        ? `<p style="margin:20px 0"><a href="${esc(d.jobLink)}" style="display:inline-block;background:${b.brandColor};color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:700">View &amp; Confirm Job</a></p>`
+        : ""
+    }
+    <p style="color:#555">Best regards,<br><strong>${esc(b.companyName)}</strong></p>
+  </div>`;
+}

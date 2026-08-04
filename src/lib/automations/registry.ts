@@ -6,6 +6,7 @@ import {
   overdueInvoiceReminder,
   chaseCommissionInvoices,
   newLeadSequenceRunner,
+  resolveAuctionsSweep,
 } from "./scheduled";
 
 // Registry of scheduled automations, keyed by the URL slug used at
@@ -64,6 +65,13 @@ export const CRON_JOBS: Record<string, CronJob> = {
     run: chaseCommissionInvoices,
   },
   "monthly-commissions": stub("processMonthlyCommissions", "0 1 30 * *"),
+
+  // ── Auctions ──────────────────────────────────────────────
+  "resolve-auctions": {
+    name: "resolveAuctionsSweep",
+    schedule: "*/2 * * * *",
+    run: resolveAuctionsSweep,
+  },
 
   // ── Staff engagement ──────────────────────────────────────
   "motivational-quote": stub("sendMotivationalQuote", "0 8 * * 1-5"),

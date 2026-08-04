@@ -19,6 +19,7 @@ import { AsyncButton } from "@/components/ui/async-button";
 import { updateJobStatus, approveReschedule, rejectReschedule, decideExtraWorkRequest } from "@/app/(protected)/jobs/actions";
 import { createInvoiceFromJob } from "@/app/(protected)/invoices/actions";
 import { BidPanel } from "@/components/contractors/bid-panel";
+import { JobBidsPanel, type ContractorBid } from "@/components/jobs/job-bids-panel";
 import { JobMessagesPanel, type JobMessage } from "@/components/jobs/job-messages-panel";
 import { CopyLinkButton } from "@/components/shared/copy-link-button";
 import type { Job } from "@/lib/schemas/jobs";
@@ -72,10 +73,16 @@ export default async function JobDetailPage({
     .order("created_date", { ascending: false })
     .returns<{ id: string; description: string; amount: number; status: string; created_date: string }[]>();
 
-  const [{ data: bids }, { data: subcontractors }, { data: jobMessages }] = await Promise.all([
+  const [{ data: bids }, { data: subcontractors }, { data: jobMessages }, { data: contractorBids }] = await Promise.all([
     supabase.from("job_bids").select("*").eq("job_id", id).order("created_date", { ascending: false }).returns<JobBid[]>(),
     supabase.from("subcontractors").select("id, name, company_name").eq("status", "active").order("name").returns<Subcontractor[]>(),
     supabase.from("job_messages").select("id, sender_role, sender_name, body, created_date").eq("job_id", id).order("created_date", { ascending: true }).returns<JobMessage[]>(),
+    supabase
+      .from("contractor_bids")
+      .select("id, contractor_id, contractor_name, contractor_email, status, note, proposed_price, bid_amount, is_auction_bid, bid_time, invited_date, responded_date")
+      .eq("job_id", id)
+      .order("bid_amount", { ascending: false, nullsFirst: false })
+      .returns<ContractorBid[]>(),
   ]);
 
   const pending = rescheduleRequests?.filter((r) => r.status === "pending") ?? [];
@@ -416,6 +423,23 @@ export default async function JobDetailPage({
           <p className="text-sm whitespace-pre-wrap">{job.notes}</p>
         </div>
       )}
+
+      {/* §2/§3/§4 Contractor invites & auction */}
+      <JobBidsPanel
+        jobId={id}
+        bids={contractorBids ?? []}
+        auction={{
+          status: job.auction_status ?? null,
+          startPrice: job.auction_start_price ?? null,
+          currentBid: job.auction_current_bid ?? null,
+          endsAt: job.auction_ends_at ?? null,
+        }}
+        jobAddress={job.address ?? null}
+        jobStartISO={job.start_date}
+        totalValue={Number(job.total_value) || 0}
+        assignedContractorId={job.assigned_contractor_id ?? null}
+        contractorAcceptance={job.contractor_acceptance ?? null}
+      />
 
       {/* Customer messages thread */}
       <JobMessagesPanel jobId={id} messages={jobMessages ?? []} />

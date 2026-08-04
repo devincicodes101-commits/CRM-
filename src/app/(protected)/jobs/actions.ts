@@ -5,6 +5,13 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { jobInsertSchema, jobUpdateSchema } from "@/lib/schemas/jobs";
 import { onJobCreated } from "@/lib/automations/triggers";
+import { assignContractorToJob } from "@/lib/contractor-jobs";
+import { createAuction } from "./bid-actions";
+
+export type JobAssignment =
+  | { mode: "operative" }
+  | { mode: "contractor"; contractorId: string; payPercent: number | null }
+  | { mode: "auction"; startPrice: number; durationMins: number };
 
 export async function createJob(values: unknown): Promise<{ error: string } | void> {
   const parsed = jobInsertSchema.safeParse(values);
@@ -43,6 +50,48 @@ export async function createJob(values: unknown): Promise<{ error: string } | vo
         scheduled_date: parsed.data.start_date,
       }),
     }).catch(() => {/* non-critical */});
+  }
+
+  revalidatePath("/jobs");
+  redirect(`/jobs/${data.id}`);
+}
+
+// §2 — create a job AND apply a three-way assignment (operative / contractor /
+// auction) in one step, from the booking panel. Reuses createJob's insert.
+export async function createJobWithAssignment(
+  values: unknown,
+  assignment: JobAssignment,
+): Promise<{ error: string } | void> {
+  const parsed = jobInsertSchema.safeParse(values);
+  if (!parsed.success) return { error: parsed.error.issues[0] ? `${parsed.error.issues[0].path.join(".") || "form"}: ${parsed.error.issues[0].message}` : "Invalid form data" };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  // Operative & contractor are mutually exclusive; for auction, no contractor yet.
+  const base = { ...parsed.data, created_by_id: user.id };
+  if (assignment.mode !== "operative") base.assigned_team = null;
+
+  const { data, error } = await supabase
+    .from("jobs")
+    .insert(base)
+    .select("id, message_token")
+    .single();
+  if (error) return { error: error.message };
+
+  onJobCreated({ ...parsed.data, id: data.id, message_token: data.message_token });
+
+  if (assignment.mode === "contractor") {
+    const res = await assignContractorToJob(supabase, {
+      jobId: data.id,
+      contractorId: assignment.contractorId,
+      payPercent: assignment.payPercent,
+    });
+    if ("error" in res) return { error: res.error };
+  } else if (assignment.mode === "auction") {
+    const res = await createAuction(data.id, assignment.startPrice, assignment.durationMins);
+    if ("error" in res) return { error: res.error };
   }
 
   revalidatePath("/jobs");

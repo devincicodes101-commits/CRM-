@@ -1,7 +1,20 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email";
 import { brandedEmail, money } from "./emails";
+import { resolveExpiredAuctions } from "@/lib/auction-resolve";
 import type { AutomationResult } from "./types";
+
+// §3 — sweep expired-but-still-live auctions and resolve them (assign winner /
+// mark no-bids), so an auction closes even if nobody has the screen open.
+export async function resolveAuctionsSweep(): Promise<AutomationResult> {
+  const supabase = await createServiceClient();
+  try {
+    const r = await resolveExpiredAuctions(supabase);
+    return { ok: true, detail: `resolved ${r.resolved} auction(s)` };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
 
 // Scheduled automation bodies. Each runs from /api/cron/<slug> via the service
 // client (no user session) and is IDEMPOTENT — it only sends where a "sent" flag
