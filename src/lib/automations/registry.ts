@@ -67,9 +67,12 @@ export const CRON_JOBS: Record<string, CronJob> = {
   "monthly-commissions": stub("processMonthlyCommissions", "0 1 30 * *"),
 
   // ── Auctions ──────────────────────────────────────────────
+  // Hobby plan caps crons at once/day; the auction sweep is only a backstop
+  // (resolve-on-load + per-bid expiry handle live auctions). Upgrade to Pro +
+  // a sub-minute schedule for hands-off live auctions.
   "resolve-auctions": {
     name: "resolveAuctionsSweep",
-    schedule: "*/2 * * * *",
+    schedule: "0 6 * * *",
     run: resolveAuctionsSweep,
   },
 

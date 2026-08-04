@@ -13,7 +13,7 @@
     { "path": "/api/cron/overdue-invoice-reminder", "schedule": "0 3 * * *" },
     { "path": "/api/cron/commission-chaser", "schedule": "0 4 * * *" },
     { "path": "/api/cron/monthly-commissions", "schedule": "0 1 30 * *" },
-    { "path": "/api/cron/resolve-auctions", "schedule": "*/2 * * * *" },
+    { "path": "/api/cron/resolve-auctions", "schedule": "0 6 * * *" },
     { "path": "/api/cron/motivational-quote", "schedule": "0 8 * * 1-5" },
     { "path": "/api/cron/friday-spin-notification", "schedule": "0 7 * * 5" }
   ]
