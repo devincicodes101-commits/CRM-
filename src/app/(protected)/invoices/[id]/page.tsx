@@ -4,21 +4,12 @@ import { ChevronLeft, Pencil, Send, CheckCircle, XCircle, AlertTriangle } from "
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { AsyncButton } from "@/components/ui/async-button";
 import { InvoicePdfButton } from "@/components/invoices/invoice-pdf";
 import { PaymentDialog } from "@/components/invoices/payment-dialog";
 import { sendInvoice, markOverdue, deleteInvoice } from "@/app/(protected)/invoices/actions";
+import { buildInvoiceBranding } from "@/lib/invoice-pdf";
 import type { Invoice } from "@/lib/schemas/invoices";
-
-const STATUS_VARIANT = {
-  draft: "outline",
-  sent: "secondary",
-  part_paid: "secondary",
-  paid: "default",
-  overdue: "destructive",
-  cancelled: "outline",
-} as const;
 
 export default async function InvoiceDetailPage({
   params,
@@ -36,6 +27,30 @@ export default async function InvoiceDetailPage({
 
   if (!invoice) notFound();
 
+  // Resolve branding for the header card (contractor for white-label, else company).
+  const { data: settings } = await supabase
+    .from("company_settings")
+    .select("company_name, tagline, primary_color, logo_url, address, city, postcode, email, phone, vat_number, bank_account_name, bank_sort_code, bank_account_number, terms_and_conditions, invoice_mode")
+    .limit(1)
+    .maybeSingle();
+  let contractor = null;
+  if (invoice.assigned_contractor_id) {
+    const { data } = await supabase
+      .from("contractors")
+      .select("company_name, contact_name, logo_url, address_line1, address_line2, address_city, address_postcode, email, phone, vat_number, bank_account_name, bank_sort_code, bank_account_number, terms_conditions")
+      .eq("id", invoice.assigned_contractor_id)
+      .maybeSingle();
+    contractor = data;
+  }
+  const branding = buildInvoiceBranding({
+    invoiceMode: settings?.invoice_mode ?? "company_direct",
+    contractor,
+    company: settings ?? null,
+  });
+  const titleLabel =
+    invoice.invoice_type === "deposit" ? "DEPOSIT INVOICE" :
+    invoice.invoice_type === "credit_note" ? "CREDIT NOTE" : "INVOICE";
+
   const balance = Number(invoice.total) - Number(invoice.amount_paid);
   const isOverdue =
     invoice.due_date &&
@@ -44,30 +59,14 @@ export default async function InvoiceDetailPage({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <Link
-            href="/invoices"
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-2"
-          >
-            <ChevronLeft className="size-4" /> Invoices
-          </Link>
-          <h1 className="text-2xl font-bold font-mono">#{invoice.invoice_number}</h1>
-          <div className="flex items-center gap-2 mt-1.5">
-            <Badge
-              variant={STATUS_VARIANT[invoice.status as keyof typeof STATUS_VARIANT] ?? "outline"}
-              className="capitalize"
-            >
-              {invoice.status.replace("_", " ")}
-            </Badge>
-            {invoice.invoice_type && invoice.invoice_type !== "standard" && (
-              <Badge variant="outline" className="capitalize text-xs">
-                {invoice.invoice_type.replace("_", " ")}
-              </Badge>
-            )}
-          </div>
-        </div>
+      {/* Back link + actions */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <Link
+          href="/invoices"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ChevronLeft className="size-4" /> Invoices
+        </Link>
         <div className="flex gap-2 flex-wrap">
           <InvoicePdfButton invoice={invoice} />
           {invoice.status === "draft" && (
@@ -104,6 +103,43 @@ export default async function InvoiceDetailPage({
               <XCircle className="size-4" /> Delete
             </AsyncButton>
           )}
+        </div>
+      </div>
+
+      {/* Branded invoice card (matches the PDF / Base44 view) */}
+      <div className="rounded-xl border overflow-hidden">
+        <div className="bg-neutral-900 text-white p-6 flex items-start justify-between gap-6 flex-wrap">
+          <div className="flex items-start gap-4 min-w-0">
+            {branding.logoUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={branding.logoUrl}
+                alt={branding.name}
+                className="size-20 rounded-lg object-contain bg-white/5 p-1.5 shrink-0"
+              />
+            )}
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold leading-tight">{branding.name}</h1>
+              {branding.tagline && <p className="text-sm text-white/70 mt-0.5">{branding.tagline}</p>}
+              {branding.addressLines.length > 0 && (
+                <p className="text-xs text-white/55 mt-2">{branding.addressLines.join(", ")}</p>
+              )}
+              {(branding.phone || branding.email) && (
+                <p className="text-xs text-white/55">
+                  {[branding.phone, branding.email].filter(Boolean).join("  ·  ")}
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-2xl font-bold tracking-wide" style={{ color: branding.brandColor }}>
+              {titleLabel}
+            </p>
+            <p className="text-sm text-white/70 font-mono mt-0.5">#{invoice.invoice_number}</p>
+            <span className="inline-block mt-2 text-[11px] px-2.5 py-0.5 rounded-full bg-white/15 text-white capitalize">
+              {invoice.status.replace("_", " ")}
+            </span>
+          </div>
         </div>
       </div>
 
