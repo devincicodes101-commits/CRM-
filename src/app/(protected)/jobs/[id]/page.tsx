@@ -9,6 +9,7 @@ import {
   PauseCircle,
   XCircle,
   MapPin,
+  FileText,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -117,6 +118,15 @@ export default async function JobDetailPage({
           </div>
         </div>
         <div className="flex gap-2 flex-wrap justify-end">
+          {job.quote_id && (
+            <Link
+              href={`/quotes/${job.quote_id}`}
+              target="_blank"
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              <FileText className="size-4" /> View Quotation
+            </Link>
+          )}
           {/* Status lifecycle buttons */}
           {job.status === "scheduled" && (
             <AsyncButton action={updateJobStatus.bind(null, id, "in_progress")} size="sm">

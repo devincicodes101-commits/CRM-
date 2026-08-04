@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { rescheduleJobDate } from "@/app/(protected)/jobs/actions";
 import { RouteTools } from "@/components/jobs/route-tools";
+import { contractorColor } from "@/lib/contractor-colors";
 import type { Job } from "@/lib/schemas/jobs";
 
 type View = "month" | "week" | "day";
@@ -262,7 +263,7 @@ function Chip({ job, conflict, setDragId }: { job: Job; conflict: boolean; setDr
         "block text-[11px] leading-tight rounded px-1.5 py-1 truncate cursor-grab active:cursor-grabbing border-l-2",
         conflict ? "bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-400" : "bg-muted/60 hover:bg-muted"
       )}
-      style={{ borderLeftColor: job.color ?? "#f97316" }}
+      style={{ borderLeftColor: contractorColor(job.assigned_contractor_id) ?? job.color ?? "#f97316" }}
       title={`${job.title}${job.start_time ? " · " + job.start_time : ""}`}
     >
       <span className={cn("inline-block size-1.5 rounded-full mr-1 align-middle", STATUS_DOT[job.status] ?? "bg-gray-400")} />

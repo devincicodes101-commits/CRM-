@@ -19,6 +19,11 @@ export const contractorInsertSchema = z.object({
   vat_registered: z.boolean().default(false),
   vat_number: z.string().nullable().optional(),
   registration_completed: z.boolean().default(false),
+  licence_type: z.enum(['licenced', 'non_licenced']).default('non_licenced'),
+  coverage_mode: z.enum(['radius', 'postcodes', 'national']).default('national'),
+  base_postcode: z.string().nullable().optional(),
+  coverage_radius_miles: z.number().int().nullable().optional(),
+  coverage_postcodes: z.array(z.string()).default([]),
 });
 
 export const contractorSelectSchema = baseSelectSchema.extend(contractorInsertSchema.shape);
