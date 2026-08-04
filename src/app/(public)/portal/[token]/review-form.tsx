@@ -8,16 +8,19 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
-export function ReviewForm({ token }: { token: string }) {
+type ReviewJob = { id: string; title: string };
+
+export function ReviewForm({ token, jobs = [] }: { token: string; jobs?: ReviewJob[] }) {
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [text, setText] = useState("");
+  const [jobId, setJobId] = useState<string>("");
   const [done, setDone] = useState(false);
   const [pending, start] = useTransition();
 
   function submit() {
     start(async () => {
-      const res = await submitPortalReview(token, { star_rating: rating, review_text: text });
+      const res = await submitPortalReview(token, { star_rating: rating, review_text: text, job_id: jobId || null });
       if ("error" in res) toast.error(res.error);
       else {
         setDone(true);
@@ -36,6 +39,18 @@ export function ReviewForm({ token }: { token: string }) {
 
   return (
     <div className="space-y-3">
+      {jobs.length > 0 && (
+        <select
+          value={jobId}
+          onChange={(e) => setJobId(e.target.value)}
+          className="w-full h-10 rounded-md border bg-background px-3 text-sm"
+        >
+          <option value="">Which job is this about? (optional)</option>
+          {jobs.map((j) => (
+            <option key={j.id} value={j.id}>{j.title}</option>
+          ))}
+        </select>
+      )}
       <div className="flex items-center gap-1">
         {[1, 2, 3, 4, 5].map((n) => (
           <button

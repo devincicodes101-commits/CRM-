@@ -7,12 +7,18 @@ const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
 
+export type EmailAttachment = {
+  filename: string;
+  content: string; // base64-encoded
+};
+
 export type SendEmailInput = {
   to: string | string[];
   subject: string;
   html: string;
   from?: string;
   replyTo?: string;
+  attachments?: EmailAttachment[];
 };
 
 export type SendEmailResult =
@@ -34,6 +40,9 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
     subject: input.subject,
     html: input.html,
     ...(input.replyTo ? { replyTo: input.replyTo } : {}),
+    ...(input.attachments?.length
+      ? { attachments: input.attachments.map((a) => ({ filename: a.filename, content: a.content })) }
+      : {}),
   });
 
   if (error) return { ok: false, error: error.message };

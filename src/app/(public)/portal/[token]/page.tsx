@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { FileText, Briefcase, Receipt, Star } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/server";
 import { ReviewForm } from "./review-form";
+import { DownloadInvoiceButton } from "./download-invoice-button";
 
 const gbp = (n: number | null | undefined) =>
   `£${Number(n ?? 0).toLocaleString("en-GB", { minimumFractionDigits: 2 })}`;
@@ -106,6 +107,7 @@ export default async function CustomerPortalPage({
             <div className="text-right">
               <p className="text-sm font-medium">{gbp(inv.total)}</p>
               <p className={`text-xs capitalize ${INVOICE_COLOR[inv.status] ?? ""}`}>{inv.status?.replace(/_/g, " ")}</p>
+              <DownloadInvoiceButton token={token} invoiceId={inv.id} />
             </div>
           </div>
         ))}
@@ -131,7 +133,12 @@ export default async function CustomerPortalPage({
               ))}
             </div>
           )}
-          <ReviewForm token={token} />
+          <ReviewForm
+            token={token}
+            jobs={jobs
+              .filter((j) => j.status === "completed")
+              .map((j) => ({ id: j.id, title: j.title as string }))}
+          />
         </div>
       </div>
     </div>

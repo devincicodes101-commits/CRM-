@@ -1,8 +1,9 @@
-import { createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { Calendar, MapPin, User } from "lucide-react";
 import { RescheduleForm } from "./reschedule-form";
+import { getPublicJobForReschedule } from "./actions";
+import { createServiceClient } from "@/lib/supabase/server";
 
 export default async function ReschedulePage({
   params,
@@ -36,12 +37,15 @@ export default async function ReschedulePage({
     ? format(new Date(job.start_date), "EEEE, d MMMM yyyy")
     : null;
 
+  const reschedule = await getPublicJobForReschedule(token);
+  const suggestions = "suggestions" in reschedule ? reschedule.suggestions : [];
+
   return (
     <div className="max-w-lg mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Request a Reschedule</h1>
+        <h1 className="text-2xl font-bold">Reschedule Your Appointment</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Let us know when you&apos;d prefer us to visit.
+          Choose a new date that suits you — it&apos;s confirmed instantly.
         </p>
       </div>
 
@@ -70,13 +74,7 @@ export default async function ReschedulePage({
         </div>
       </div>
 
-      <RescheduleForm
-        jobId={job.id}
-        jobTitle={job.title}
-        customerName={job.customer_name ?? ""}
-        customerEmail={job.customer_email ?? ""}
-        originalDate={job.start_date}
-      />
+      <RescheduleForm token={token} suggestions={suggestions} />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Settings2, ClipboardList, Trophy, Users2 } from "lucide-react";
+import { Settings2, ClipboardList, Trophy, Users2, Receipt } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { TestEmailButton } from "./test-email-button";
 
@@ -21,6 +21,12 @@ const SECTIONS = [
     icon: Users2,
     label: "Team & Invites",
     description: "Invite staff members and manage roles",
+  },
+  {
+    href: "/settings/invoicing",
+    icon: Receipt,
+    label: "Invoicing",
+    description: "White-label vs company-direct invoice mode",
   },
   {
     href: "/settings/integrations",

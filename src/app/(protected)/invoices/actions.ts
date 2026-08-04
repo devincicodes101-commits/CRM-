@@ -7,6 +7,167 @@ import { invoiceInsertSchema, invoiceUpdateSchema } from "@/lib/schemas/invoices
 import { onInvoicePaid } from "@/lib/automations/triggers";
 import { sendEmail } from "@/lib/email";
 import { getBranding, invoiceEmailHtml, type InvoiceEmailData } from "@/lib/email-templates";
+import {
+  buildInvoiceBranding,
+  generateInvoicePdfBase64,
+  type PdfInvoice,
+} from "@/lib/invoice-pdf";
+
+// §8/§9/§10 — generate a white-label invoice for a job, attach a real PDF to the
+// email, persist it (deduped by job_id + invoice_type), and honour invoice_mode.
+export async function generateAndEmailInvoice(
+  jobId: string,
+  invoiceType: "standard" | "deposit" = "standard",
+): Promise<{ error: string } | { ok: true; invoiceId: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data: job } = await supabase
+    .from("jobs")
+    .select("id, title, quote_id, customer_id, customer_name, customer_email, address, total_value, assigned_contractor_id")
+    .eq("id", jobId)
+    .single<{
+      id: string; title: string | null; quote_id: string | null; customer_id: string | null;
+      customer_name: string | null; customer_email: string | null; address: string | null;
+      total_value: number | null; assigned_contractor_id: string | null;
+    }>();
+  if (!job) return { error: "Job not found" };
+
+  // BILL TO always comes from the customer — never the logged-in / created_by staff.
+  let billName = job.customer_name ?? "";
+  let billEmail = job.customer_email ?? null;
+  let billAddress = job.address ?? null;
+  if (job.customer_id) {
+    const { data: cust } = await supabase
+      .from("customers")
+      .select("name, email, address")
+      .eq("id", job.customer_id)
+      .maybeSingle<{ name: string | null; email: string | null; address: string | null }>();
+    if (cust) {
+      billName = cust.name ?? billName;
+      billEmail = cust.email ?? billEmail;
+      billAddress = cust.address ?? billAddress;
+    }
+  }
+  if (!billName.trim()) return { error: "This job has no customer to bill." };
+
+  const { data: settings } = await supabase
+    .from("company_settings")
+    .select("company_name, logo_url, address, city, postcode, email, phone, vat_number, bank_account_name, bank_sort_code, bank_account_number, terms_and_conditions, invoice_mode")
+    .limit(1)
+    .maybeSingle();
+  const invoiceMode: string = settings?.invoice_mode ?? "company_direct";
+
+  let contractor = null;
+  if (job.assigned_contractor_id) {
+    const { data } = await supabase
+      .from("contractors")
+      .select("company_name, contact_name, logo_url, address_line1, address_line2, address_city, address_postcode, email, phone, vat_number, bank_account_name, bank_sort_code, bank_account_number, terms_conditions")
+      .eq("id", job.assigned_contractor_id)
+      .maybeSingle();
+    contractor = data;
+  }
+
+  // Amounts. Deposit = 50% of job value, single line, NO VAT (client to confirm).
+  const value = Number(job.total_value ?? 0);
+  const isDeposit = invoiceType === "deposit";
+  const depositAmount = Math.round(value * 0.5 * 100) / 100;
+  const items = isDeposit
+    ? [{ service_name: "50% Booking Fee / Deposit", quantity: 1, unit_price: depositAmount, total: depositAmount }]
+    : [{ service_name: job.title ?? "Works", quantity: 1, unit_price: value, total: value }];
+  const subtotal = isDeposit ? depositAmount : value;
+  const vatRate = isDeposit ? 0 : 20;
+  const vatAmount = isDeposit ? 0 : Math.round(subtotal * 0.2 * 100) / 100;
+  const total = Math.round((subtotal + vatAmount) * 100) / 100;
+
+  const row = {
+    job_id: job.id,
+    quote_id: job.quote_id ?? null,
+    assigned_contractor_id: job.assigned_contractor_id ?? null,
+    customer_id: job.customer_id ?? null,
+    customer_name: billName,
+    customer_email: billEmail,
+    customer_address: billAddress,
+    invoice_type: invoiceType,
+    deposit_percent: isDeposit ? 50 : null,
+    items,
+    subtotal,
+    vat_rate: vatRate,
+    vat_amount: vatAmount,
+    total,
+    status: "sent" as const,
+    sent_date: new Date().toISOString(),
+    created_by_id: user.id,
+  };
+
+  // Dedupe by (job_id, invoice_type): update in place if one already exists.
+  const { data: existing } = await supabase
+    .from("invoices")
+    .select("id")
+    .eq("job_id", job.id)
+    .eq("invoice_type", invoiceType)
+    .maybeSingle<{ id: string }>();
+
+  let invoiceId: string;
+  let invoiceNumber: string;
+  if (existing) {
+    const { data, error } = await supabase
+      .from("invoices").update(row).eq("id", existing.id).select("id, invoice_number").single();
+    if (error) return { error: error.message };
+    invoiceId = data.id; invoiceNumber = data.invoice_number;
+  } else {
+    const { data, error } = await supabase
+      .from("invoices").insert(row).select("id, invoice_number, created_date").single();
+    if (error) return { error: error.message };
+    invoiceId = data.id; invoiceNumber = data.invoice_number;
+  }
+
+  // Resolve branding + PDF, then email it.
+  const branding = buildInvoiceBranding({ invoiceMode, contractor, company: settings ?? null });
+  const pdfInvoice: PdfInvoice = {
+    invoice_number: invoiceNumber,
+    invoice_type: invoiceType,
+    created_date: new Date().toISOString(),
+    due_date: null,
+    customer_name: billName,
+    customer_email: billEmail,
+    customer_address: billAddress,
+    items,
+    subtotal,
+    discount_amount: 0,
+    vat_rate: vatRate,
+    vat_amount: vatAmount,
+    total,
+    amount_paid: 0,
+    notes: null,
+  };
+  const pdfBase64 = generateInvoicePdfBase64(pdfInvoice, branding);
+
+  if (billEmail) {
+    const emailBranding = await getBranding(supabase);
+    await sendEmail({
+      to: billEmail,
+      from: emailBranding.from,
+      subject: `${isDeposit ? "Deposit Invoice" : "Invoice"} ${invoiceNumber} from ${branding.name}`,
+      html: invoiceEmailHtml(
+        { invoice_number: invoiceNumber, customer_name: billName, customer_address: billAddress, due_date: null, items, subtotal, vat_rate: vatRate, vat_amount: vatAmount, total, amount_paid: 0 },
+        emailBranding,
+      ),
+      attachments: [{ filename: `invoice-${invoiceNumber}.pdf`, content: pdfBase64 }],
+    });
+  }
+
+  // §9 commission guard: contractor commission only fires under white-label.
+  // (Contractor commission-invoice creation is tracked separately — see PLAN.)
+  const shouldRaiseCommission = invoiceMode === "white_label" && !!job.assigned_contractor_id;
+  void shouldRaiseCommission;
+
+  revalidatePath(`/jobs/${jobId}`);
+  revalidatePath("/invoices");
+  return { ok: true, invoiceId };
+}
+
 
 export async function createInvoice(values: unknown): Promise<{ error: string } | void> {
   const parsed = invoiceInsertSchema.safeParse(values);

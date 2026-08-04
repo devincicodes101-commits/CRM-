@@ -1,8 +1,32 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email";
 import { brandedEmail } from "@/lib/automations/emails";
+
+// §9 — white-label vs company-direct invoicing mode.
+export async function setInvoiceMode(
+  mode: "white_label" | "company_direct",
+): Promise<{ ok: true } | { error: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data: existing } = await supabase
+    .from("company_settings")
+    .select("id")
+    .limit(1)
+    .maybeSingle<{ id: string }>();
+
+  const { error } = existing
+    ? await supabase.from("company_settings").update({ invoice_mode: mode }).eq("id", existing.id)
+    : await supabase.from("company_settings").insert({ invoice_mode: mode });
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/invoicing");
+  return { ok: true };
+}
 
 export async function sendTestEmail(
   to: string

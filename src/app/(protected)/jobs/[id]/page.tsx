@@ -20,6 +20,7 @@ import { updateJobStatus, approveReschedule, rejectReschedule, decideExtraWorkRe
 import { createInvoiceFromJob } from "@/app/(protected)/invoices/actions";
 import { BidPanel } from "@/components/contractors/bid-panel";
 import { JobBidsPanel, type ContractorBid } from "@/components/jobs/job-bids-panel";
+import { GenerateInvoiceButtons } from "@/components/invoices/generate-invoice-buttons";
 import { JobMessagesPanel, type JobMessage } from "@/components/jobs/job-messages-panel";
 import { CopyLinkButton } from "@/components/shared/copy-link-button";
 import type { Job } from "@/lib/schemas/jobs";
@@ -134,6 +135,8 @@ export default async function JobDetailPage({
               <FileText className="size-4" /> View Quotation
             </Link>
           )}
+          {/* §8/§10 White-label invoice + deposit */}
+          <GenerateInvoiceButtons jobId={id} />
           {/* Status lifecycle buttons */}
           {job.status === "scheduled" && (
             <AsyncButton action={updateJobStatus.bind(null, id, "in_progress")} size="sm">

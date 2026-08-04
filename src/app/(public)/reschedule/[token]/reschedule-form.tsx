@@ -1,112 +1,107 @@
 "use client";
 
-import { useState } from "react";
-import { submitRescheduleRequest } from "./actions";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
+import { Star, ChevronRight, CalendarCheck, MapPin, CheckCircle } from "lucide-react";
+import { publicRescheduleJob } from "./actions";
+import type { DateSuggestion } from "@/lib/booking";
+import { Button } from "@/components/ui/button";
 
-type Props = {
-  jobId: string;
-  jobTitle: string;
-  customerName: string;
-  customerEmail: string;
-  originalDate: string | null;
+const AVAILABILITY: Record<DateSuggestion["availability"], { label: string; className: string }> = {
+  wide_open: { label: "Wide open", className: "bg-emerald-100 text-emerald-700" },
+  available: { label: "Available", className: "bg-blue-100 text-blue-700" },
+  busy: { label: "Busy", className: "bg-amber-100 text-amber-700" },
 };
 
-export function RescheduleForm({
-  jobId,
-  jobTitle,
-  customerName,
-  customerEmail,
-  originalDate,
-}: Props) {
-  const [requestedDate, setRequestedDate] = useState("");
-  const [reason, setReason] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+// §12 — geo date picker for customer self-reschedule (reuses the quote-booking UX).
+export function RescheduleForm({ token, suggestions }: { token: string; suggestions: DateSuggestion[] }) {
+  const [selected, setSelected] = useState<DateSuggestion | null>(null);
+  const [step, setStep] = useState<"pick" | "confirm">("pick");
+  const [pending, start] = useTransition();
   const [done, setDone] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError(null);
-
-    const result = await submitRescheduleRequest({
-      jobId,
-      customerEmail,
-      customerName,
-      jobTitle,
-      originalDate: originalDate ?? undefined,
-      requestedDate,
-      reason,
+  function confirm() {
+    if (!selected) return;
+    start(async () => {
+      const res = await publicRescheduleJob(token, selected.dateStr);
+      if ("error" in res) toast.error(res.error);
+      else setDone(true);
     });
-
-    setSubmitting(false);
-
-    if ("error" in result) {
-      setError(result.error);
-    } else {
-      setDone(true);
-    }
   }
 
   if (done) {
     return (
-      <div className="rounded-lg border bg-card p-6 text-center space-y-2">
-        <div className="text-4xl">✅</div>
-        <h2 className="text-lg font-semibold">Request Received</h2>
-        <p className="text-sm text-muted-foreground">
-          We have received your reschedule request and will be in touch to confirm
-          the new date.
+      <div className="rounded-xl border border-green-300 bg-green-50 dark:bg-green-950/20 dark:border-green-700 p-6 text-center space-y-2">
+        <CheckCircle className="size-10 text-green-600 dark:text-green-400 mx-auto" />
+        <p className="font-semibold text-green-800 dark:text-green-200 text-lg">Appointment Rescheduled ✓</p>
+        <p className="text-sm text-green-700 dark:text-green-300">
+          Your new date is <strong>{selected?.label}</strong>. A fresh confirmation email is on its way.
+        </p>
+        <p className="text-xs text-green-700/80 dark:text-green-300/80">
+          All appointments are all-day; we cannot guarantee a specific arrival time.
         </p>
       </div>
     );
   }
 
-  const minDate = new Date();
-  minDate.setDate(minDate.getDate() + 1);
-  const minDateStr = minDate.toISOString().split("T")[0];
+  if (step === "confirm" && selected) {
+    return (
+      <div className="rounded-2xl border bg-background p-6 space-y-4">
+        <div className="text-center space-y-1">
+          <CalendarCheck className="size-8 text-primary mx-auto" />
+          <h2 className="font-semibold text-lg">Confirm your new date</h2>
+        </div>
+        <div className="rounded-lg border bg-muted/40 p-4 space-y-1 text-sm">
+          <p><span className="text-muted-foreground">New date:</span> <strong>{selected.label}</strong></p>
+          <p className="text-muted-foreground text-xs">All-day appointment — arrival time cannot be guaranteed.</p>
+        </div>
+        <div className="flex gap-3">
+          <Button variant="outline" className="flex-1 h-12" onClick={() => setStep("pick")} disabled={pending}>Back</Button>
+          <Button className="flex-1 h-12 text-base" onClick={confirm} disabled={pending}>
+            {pending ? "Rescheduling…" : "Confirm New Date"}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-lg border bg-card p-6 space-y-5">
-      <div>
-        <label className="block text-sm font-medium mb-1">
-          Preferred New Date <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="date"
-          min={minDateStr}
-          required
-          value={requestedDate}
-          onChange={(e) => setRequestedDate(e.target.value)}
-          className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-        />
+    <div className="rounded-2xl border bg-background p-6 space-y-4">
+      <div className="text-center space-y-1">
+        <h2 className="font-semibold text-lg">Choose a New Date</h2>
+        <p className="text-sm text-muted-foreground">Pick from our best available dates near you.</p>
       </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">
-          Reason for Reschedule
-        </label>
-        <textarea
-          rows={3}
-          placeholder="Please let us know why you need to reschedule..."
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-        />
+      <div className="space-y-2">
+        {suggestions.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            No dates available right now — please contact us to arrange a time.
+          </p>
+        )}
+        {suggestions.map((s, i) => {
+          const a = AVAILABILITY[s.availability];
+          return (
+            <button
+              key={s.dateStr}
+              onClick={() => { setSelected(s); setStep("confirm"); }}
+              className="w-full flex items-center gap-3 rounded-xl border p-4 text-left hover:border-primary hover:bg-primary/5 transition-colors"
+            >
+              {i === 0 ? <Star className="size-5 text-amber-400 fill-amber-400 shrink-0" /> : <span className="size-5 shrink-0" />}
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm">{s.label}</p>
+                <div className="flex flex-wrap items-center gap-2 mt-1">
+                  <span className={`text-[11px] px-2 py-0.5 rounded-full ${a.className}`}>{a.label}</span>
+                  {s.nearbyMiles !== null && (
+                    <span className="inline-flex items-center gap-1 text-[11px] text-blue-600">
+                      <MapPin className="size-3" /> Team nearby ({s.nearbyMiles} mi away)
+                    </span>
+                  )}
+                </div>
+              </div>
+              <ChevronRight className="size-4 text-muted-foreground shrink-0" />
+            </button>
+          );
+        })}
       </div>
-
-      {error && (
-        <p className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 rounded-md px-3 py-2">
-          {error}
-        </p>
-      )}
-
-      <button
-        type="submit"
-        disabled={submitting || !requestedDate}
-        className="w-full rounded-md bg-primary text-primary-foreground py-2.5 text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-      >
-        {submitting ? "Submitting…" : "Request Reschedule"}
-      </button>
-    </form>
+    </div>
   );
 }
