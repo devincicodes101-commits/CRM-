@@ -65,3 +65,5 @@ A further 21-item wave of contractor features is being ported in batches:
 
 _Authoritative record of code changes is the git history (`git log`). This file
 summarises status for non-technical readers._
+
+<!-- redeploy trigger: batches 2-4 + contractor commissions (2026-08-04T23:15Z) -->
