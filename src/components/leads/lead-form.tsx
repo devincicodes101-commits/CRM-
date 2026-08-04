@@ -147,6 +147,7 @@ export function LeadForm({ lead }: Props) {
                   <SelectItem value="website_form">Website Form</SelectItem>
                   <SelectItem value="google_ads">Google Ads</SelectItem>
                   <SelectItem value="referral">Referral</SelectItem>
+                  <SelectItem value="ai_sales_agent">AI Sales Agent</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>

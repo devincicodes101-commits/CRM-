@@ -17,7 +17,7 @@ const STATUS_STYLES: Record<string, string> = {
 
 const SOURCE_ICONS: Record<string, string> = {
   facebook: "📘", instagram: "📸", tiktok: "🎵", twitter: "🐦",
-  linkedin: "💼", website_form: "🌐", google_ads: "🔍", referral: "🤝", other: "📌",
+  linkedin: "💼", website_form: "🌐", google_ads: "🔍", referral: "🤝", ai_sales_agent: "🤖", other: "📌",
 };
 
 export default async function LeadsPage({

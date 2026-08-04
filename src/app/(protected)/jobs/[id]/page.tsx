@@ -21,6 +21,7 @@ import { createInvoiceFromJob } from "@/app/(protected)/invoices/actions";
 import { BidPanel } from "@/components/contractors/bid-panel";
 import { JobBidsPanel, type ContractorBid } from "@/components/jobs/job-bids-panel";
 import { GenerateInvoiceButtons } from "@/components/invoices/generate-invoice-buttons";
+import { EmailUndeliverableWarning } from "@/components/shared/email-undeliverable-warning";
 import { JobMessagesPanel, type JobMessage } from "@/components/jobs/job-messages-panel";
 import { CopyLinkButton } from "@/components/shared/copy-link-button";
 import type { Job } from "@/lib/schemas/jobs";
@@ -87,6 +88,18 @@ export default async function JobDetailPage({
   ]);
 
   const pending = rescheduleRequests?.filter((r) => r.status === "pending") ?? [];
+
+  // §19 — surface a deliverability warning if this customer's email bounced/complained.
+  let customerEmailStatus: string | null = null;
+  if (job.customer_id || job.customer_email) {
+    const ors = [
+      job.customer_id ? `id.eq.${job.customer_id}` : null,
+      job.customer_email ? `email.eq.${job.customer_email}` : null,
+    ].filter(Boolean).join(",");
+    const { data: c } = await supabase
+      .from("customers").select("email_status").or(ors).maybeSingle<{ email_status: string | null }>();
+    customerEmailStatus = c?.email_status ?? null;
+  }
 
   const mapsUrl = job.address
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.address)}`
@@ -219,6 +232,8 @@ export default async function JobDetailPage({
           </Link>
         </div>
       </div>
+
+      <EmailUndeliverableWarning status={customerEmailStatus} />
 
       {/* Pending reschedule requests */}
       {pending.length > 0 && (

@@ -111,6 +111,8 @@ export async function createQuote(input: any) {
     status: "draft",
     valid_until: validUntil,
     notes: input.notes || null,
+    // §18 — mark AI-authored quotes so they show as such in the admin quotes list.
+    sales_agent_name: "AI Sales Agent",
   }).select("id, quote_number").single();
   if (error) return { error: error.message };
   return { quote_id: data.id, quote_number: data.quote_number };
@@ -120,9 +122,9 @@ export async function sendQuoteTool(quoteId: string) {
   const supabase = await createServiceClient();
   const { data: q } = await supabase
     .from("quotes")
-    .select("quote_number, customer_name, customer_email, total, public_token")
+    .select("id, quote_number, customer_name, customer_email, customer_address, total, public_token")
     .eq("id", quoteId)
-    .single<{ quote_number: string; customer_name: string | null; customer_email: string | null; total: number | null; public_token: string }>();
+    .single<{ id: string; quote_number: string; customer_name: string | null; customer_email: string | null; customer_address: string | null; total: number | null; public_token: string }>();
   if (!q) return { error: "Quote not found" };
   if (!q.customer_email) return { error: "Quote has no customer email" };
 
@@ -140,6 +142,24 @@ export async function sendQuoteTool(quoteId: string) {
   });
   if (!res.ok) return { error: res.error };
   await supabase.from("quotes").update({ status: "sent", sent_date: new Date().toISOString() }).eq("id", quoteId);
+
+  // §18 — when the AI agent sends a quote, drop a lead for a human rep to chase.
+  // Dedupe on the quote so re-sends don't create duplicate leads.
+  const { data: existingLead } = await supabase
+    .from("leads").select("id").eq("converted_to_quote_id", q.id).maybeSingle<{ id: string }>();
+  if (!existingLead) {
+    await supabase.from("leads").insert({
+      name: q.customer_name ?? "AI enquiry",
+      email: q.customer_email,
+      address: q.customer_address ?? null,
+      source: "ai_sales_agent",
+      status: "quoted",
+      priority: "medium",
+      estimated_value: q.total ?? null,
+      converted_to_quote_id: q.id,
+      notes: `AI agent sent quote ${q.quote_number} — needs follow-up.`,
+    });
+  }
   return { success: true };
 }
 

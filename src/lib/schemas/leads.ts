@@ -5,7 +5,7 @@ export const leadInsertSchema = z.object({
   name: z.string().min(1),
   email: z.string().email().nullable().optional(),
   phone: z.string().nullable().optional(),
-  source: z.enum(['facebook', 'instagram', 'tiktok', 'twitter', 'linkedin', 'website_form', 'google_ads', 'referral', 'other']).nullable().optional(),
+  source: z.enum(['facebook', 'instagram', 'tiktok', 'twitter', 'linkedin', 'website_form', 'google_ads', 'referral', 'ai_sales_agent', 'other']).nullable().optional(),
   category: z.enum(['web_forms', 'social', 'ppc', 'other']).nullable().optional(),
   service_interest: z.string().nullable().optional(),
   message: z.string().nullable().optional(),

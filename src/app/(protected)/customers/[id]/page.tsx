@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Pencil } from "lucide-react";
+import { EmailUndeliverableWarning } from "@/components/shared/email-undeliverable-warning";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
@@ -80,6 +81,8 @@ export default async function CustomerDetailPage({
           </Link>
         </div>
       </div>
+
+      <EmailUndeliverableWarning status={customer.email_status} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="rounded-xl border bg-card p-4 space-y-3">

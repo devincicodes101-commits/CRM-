@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Pencil, Send, CheckCircle, XCircle, Receipt } from "lucide-react";
+import { EmailUndeliverableWarning } from "@/components/shared/email-undeliverable-warning";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
@@ -43,8 +44,21 @@ export default async function QuoteDetailPage({
 
   if (!quote) notFound();
 
+  // §19 — deliverability warning if this customer's email bounced/complained.
+  let customerEmailStatus: string | null = null;
+  if (quote.customer_id || quote.customer_email) {
+    const ors = [
+      quote.customer_id ? `id.eq.${quote.customer_id}` : null,
+      quote.customer_email ? `email.eq.${quote.customer_email}` : null,
+    ].filter(Boolean).join(",");
+    const { data: c } = await supabase
+      .from("customers").select("email_status").or(ors).maybeSingle<{ email_status: string | null }>();
+    customerEmailStatus = c?.email_status ?? null;
+  }
+
   return (
     <div className="space-y-6">
+      <EmailUndeliverableWarning status={customerEmailStatus} />
       <div className="flex items-start justify-between">
         <div>
           <Link
