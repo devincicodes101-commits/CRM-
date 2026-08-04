@@ -79,7 +79,7 @@ export async function createContractorCommissionInvoice(
     try {
       const { data: settings } = await supabase
         .from("company_settings")
-        .select("company_name, logo_url, address, city, postcode, email, phone, vat_number, bank_account_name, bank_sort_code, bank_account_number, terms_and_conditions")
+        .select("company_name, tagline, primary_color, logo_url, address, city, postcode, email, phone, vat_number, bank_account_name, bank_sort_code, bank_account_number, terms_and_conditions")
         .limit(1)
         .maybeSingle();
       const branding = buildInvoiceBranding({ invoiceMode: "company_direct", contractor: null, company: settings ?? null });

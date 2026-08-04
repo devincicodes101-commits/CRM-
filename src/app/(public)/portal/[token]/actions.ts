@@ -96,7 +96,7 @@ export async function downloadInvoice(
 
   const { data: settings } = await supabase
     .from("company_settings")
-    .select("company_name, logo_url, address, city, postcode, email, phone, vat_number, bank_account_name, bank_sort_code, bank_account_number, terms_and_conditions, invoice_mode")
+    .select("company_name, tagline, primary_color, logo_url, address, city, postcode, email, phone, vat_number, bank_account_name, bank_sort_code, bank_account_number, terms_and_conditions, invoice_mode")
     .limit(1)
     .maybeSingle();
   const invoiceMode: string = settings?.invoice_mode ?? "company_direct";

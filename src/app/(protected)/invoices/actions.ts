@@ -55,7 +55,7 @@ export async function generateAndEmailInvoice(
 
   const { data: settings } = await supabase
     .from("company_settings")
-    .select("company_name, logo_url, address, city, postcode, email, phone, vat_number, bank_account_name, bank_sort_code, bank_account_number, terms_and_conditions, invoice_mode")
+    .select("company_name, tagline, primary_color, logo_url, address, city, postcode, email, phone, vat_number, bank_account_name, bank_sort_code, bank_account_number, terms_and_conditions, invoice_mode")
     .limit(1)
     .maybeSingle();
   const invoiceMode: string = settings?.invoice_mode ?? "company_direct";
@@ -175,6 +175,60 @@ export async function generateAndEmailInvoice(
   return { ok: true, invoiceId };
 }
 
+
+// §8 — staff download of a branded invoice PDF (same generator as the emailed /
+// portal PDF), so the detail-page "Download PDF" button matches everything else.
+export async function downloadInvoicePdf(
+  invoiceId: string,
+): Promise<{ pdf: string; filename: string } | { error: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data: inv } = await supabase
+    .from("invoices")
+    .select("invoice_number, invoice_type, created_date, due_date, customer_name, customer_email, customer_address, assigned_contractor_id, items, subtotal, discount_amount, vat_rate, vat_amount, total, amount_paid, notes")
+    .eq("id", invoiceId)
+    .maybeSingle();
+  if (!inv) return { error: "Invoice not found" };
+
+  const { data: settings } = await supabase
+    .from("company_settings")
+    .select("company_name, tagline, primary_color, logo_url, address, city, postcode, email, phone, vat_number, bank_account_name, bank_sort_code, bank_account_number, terms_and_conditions, invoice_mode")
+    .limit(1)
+    .maybeSingle();
+  const invoiceMode: string = settings?.invoice_mode ?? "company_direct";
+
+  let contractor = null;
+  if (inv.assigned_contractor_id) {
+    const { data } = await supabase
+      .from("contractors")
+      .select("company_name, contact_name, logo_url, address_line1, address_line2, address_city, address_postcode, email, phone, vat_number, bank_account_name, bank_sort_code, bank_account_number, terms_conditions")
+      .eq("id", inv.assigned_contractor_id)
+      .maybeSingle();
+    contractor = data;
+  }
+
+  const branding = buildInvoiceBranding({ invoiceMode, contractor, company: settings ?? null });
+  const pdfInvoice: PdfInvoice = {
+    invoice_number: inv.invoice_number,
+    invoice_type: inv.invoice_type,
+    created_date: inv.created_date,
+    due_date: inv.due_date,
+    customer_name: inv.customer_name,
+    customer_email: inv.customer_email,
+    customer_address: inv.customer_address,
+    items: inv.items ?? [],
+    subtotal: Number(inv.subtotal ?? 0),
+    discount_amount: Number(inv.discount_amount ?? 0),
+    vat_rate: Number(inv.vat_rate ?? 0),
+    vat_amount: Number(inv.vat_amount ?? 0),
+    total: Number(inv.total ?? 0),
+    amount_paid: Number(inv.amount_paid ?? 0),
+    notes: inv.notes,
+  };
+  return { pdf: generateInvoicePdfBase64(pdfInvoice, branding), filename: `invoice-${inv.invoice_number}.pdf` };
+}
 
 export async function createInvoice(values: unknown): Promise<{ error: string } | void> {
   const parsed = invoiceInsertSchema.safeParse(values);
