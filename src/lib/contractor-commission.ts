@@ -1,16 +1,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  buildInvoiceBranding,
+  buildAgencyBranding,
   generateInvoicePdfBase64,
   type PdfInvoice,
 } from "@/lib/invoice-pdf";
 import { getBranding, invoiceEmailHtml } from "@/lib/email-templates";
 import { sendEmail } from "@/lib/email";
 
-// §8/§9 — under white-label invoicing, raise the agency-fee invoice FROM the
-// company TO the assigned contractor (the company's share of the job value).
-// Idempotent: one per job (contractor_commission_invoices.job_id is UNIQUE).
-// Never throws — the customer invoice must succeed regardless.
+const DEFAULT_AGENCY_FEE = 30; // % of job value if nothing configured
+
+// §6 — the AppyLead agency fee: a % of the job value billed FROM the agency TO
+// the assigned contractor, under white-label invoicing. Agency-branded PDF with
+// SWIFT payment details. Idempotent (one per job). Never throws.
 export async function createContractorCommissionInvoice(
   supabase: SupabaseClient,
   opts: { jobId: string; customerInvoiceId?: string | null; createdById?: string | null },
@@ -18,21 +19,30 @@ export async function createContractorCommissionInvoice(
   try {
     const { data: job } = await supabase
       .from("jobs")
-      .select("id, title, total_value, assigned_contractor_id, contractor_pay_amount, company_share_amount")
+      .select("id, title, total_value, assigned_contractor_id, contractor_pay_amount, agency_fee_percent")
       .eq("id", opts.jobId)
       .single<{
         id: string; title: string | null; total_value: number | null;
-        assigned_contractor_id: string | null; contractor_pay_amount: number | null; company_share_amount: number | null;
+        assigned_contractor_id: string | null; contractor_pay_amount: number | null; agency_fee_percent: number | null;
       }>();
     if (!job) return { skipped: "job_not_found" };
     if (!job.assigned_contractor_id) return { skipped: "no_contractor" };
 
     const jobValue = Number(job.total_value ?? 0);
     const contractorPay = Number(job.contractor_pay_amount ?? 0);
-    // Company share = agency fee owed. Prefer the stored split; fall back to value − pay.
-    const commission =
-      job.company_share_amount != null ? Number(job.company_share_amount) : Math.max(0, jobValue - contractorPay);
+
+    // Agency settings — fee %, VAT status and branding.
+    const { data: settings } = await supabase
+      .from("company_settings")
+      .select("agency_name, agency_logo_url, agency_address, agency_vat_number, agency_email, agency_bank_name, agency_account_name, agency_iban, agency_swift_bic, agency_fee_percent, primary_color")
+      .limit(1)
+      .maybeSingle();
+
+    const feePercent = Number(job.agency_fee_percent ?? settings?.agency_fee_percent ?? DEFAULT_AGENCY_FEE);
+    const commission = Math.round(((jobValue * feePercent) / 100) * 100) / 100;
     if (!(commission > 0)) return { skipped: "no_commission" };
+    const vatAmount = settings?.agency_vat_number ? Math.round(commission * 0.2 * 100) / 100 : 0;
+    const totalDue = Math.round((commission + vatAmount) * 100) / 100;
 
     // Dedupe on the job.
     const { data: existing } = await supabase
@@ -64,9 +74,10 @@ export async function createContractorCommissionInvoice(
         job_title: job.title,
         job_value: jobValue,
         contractor_pay_amount: contractorPay,
+        commission_percent: feePercent,
         commission_amount: commission,
-        vat_amount: 0,
-        total_due: commission,
+        vat_amount: vatAmount,
+        total_due: totalDue,
         status: "sent",
         sent_date: new Date().toISOString(),
         created_by_id: opts.createdById ?? null,
@@ -75,14 +86,11 @@ export async function createContractorCommissionInvoice(
       .single();
     if (error) return { error: error.message };
 
-    // Company-branded PDF billing the contractor.
+    // Agency-branded PDF billing the contractor, with SWIFT payment details.
     try {
-      const { data: settings } = await supabase
-        .from("company_settings")
-        .select("company_name, tagline, primary_color, logo_url, address, city, postcode, email, phone, vat_number, bank_account_name, bank_sort_code, bank_account_number, terms_and_conditions")
-        .limit(1)
-        .maybeSingle();
-      const branding = buildInvoiceBranding({ invoiceMode: "company_direct", contractor: null, company: settings ?? null });
+      const branding = buildAgencyBranding(settings ?? null);
+      const vatRate = vatAmount > 0 ? 20 : 0;
+      const items = [{ service_name: `Agency commission (${feePercent}%) — ${job.title ?? "Job"}`, quantity: 1, unit_price: commission, total: commission }];
       const pdfInvoice: PdfInvoice = {
         invoice_number: inserted.invoice_number,
         invoice_type: "standard",
@@ -91,25 +99,28 @@ export async function createContractorCommissionInvoice(
         customer_name: contractorName,
         customer_email: contractor?.email ?? null,
         customer_address: contractorAddress,
-        items: [{ service_name: `Agency commission — ${job.title ?? "Job"}`, quantity: 1, unit_price: commission, total: commission }],
+        items,
         subtotal: commission,
         discount_amount: 0,
-        vat_rate: 0,
-        vat_amount: 0,
-        total: commission,
+        vat_rate: vatRate,
+        vat_amount: vatAmount,
+        total: totalDue,
         amount_paid: 0,
-        notes: `Commission on job "${job.title ?? ""}" (job value ${jobValue.toFixed(2)}, your share ${contractorPay.toFixed(2)}).`,
+        notes: `Agency fee of ${feePercent}% on job "${job.title ?? ""}" (job value £${jobValue.toFixed(2)}).`,
       };
       const pdfBase64 = generateInvoicePdfBase64(pdfInvoice, branding);
 
       if (contractor?.email) {
         const emailBranding = await getBranding(supabase);
+        const from = settings?.agency_email
+          ? `${branding.name} <${settings.agency_email}>`
+          : emailBranding.from;
         await sendEmail({
           to: contractor.email,
-          from: emailBranding.from,
+          from,
           subject: `Commission invoice ${inserted.invoice_number} — ${job.title ?? "Job"}`,
           html: invoiceEmailHtml(
-            { invoice_number: inserted.invoice_number, customer_name: contractorName, customer_address: contractorAddress, due_date: null, items: pdfInvoice.items, subtotal: commission, vat_rate: 0, vat_amount: 0, total: commission, amount_paid: 0 },
+            { invoice_number: inserted.invoice_number, customer_name: contractorName, customer_address: contractorAddress, due_date: null, items, subtotal: commission, vat_rate: vatRate, vat_amount: vatAmount, total: totalDue, amount_paid: 0 },
             emailBranding,
           ),
           attachments: [{ filename: `commission-${inserted.invoice_number}.pdf`, content: pdfBase64 }],

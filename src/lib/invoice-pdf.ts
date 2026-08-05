@@ -18,6 +18,7 @@ export type InvoiceBranding = {
   bankSortCode: string | null;
   bankAccountNumber: string | null;
   bankIban: string | null;
+  bankSwift: string | null;
   terms: string | null;
 };
 
@@ -87,6 +88,7 @@ export function buildInvoiceBranding(opts: {
       bankSortCode: contractor.bank_sort_code,
       bankAccountNumber: contractor.bank_account_number,
       bankIban: null,
+      bankSwift: null,
       terms: contractor.terms_conditions,
     };
   }
@@ -103,7 +105,41 @@ export function buildInvoiceBranding(opts: {
     bankSortCode: company?.bank_sort_code ?? null,
     bankAccountNumber: company?.bank_account_number ?? null,
     bankIban: null,
+    bankSwift: null,
     terms: company?.terms_and_conditions ?? null,
+  };
+}
+
+type AgencyBrandingRow = {
+  agency_name: string | null;
+  agency_logo_url: string | null;
+  agency_address: string | null;
+  agency_vat_number: string | null;
+  agency_email: string | null;
+  agency_bank_name: string | null;
+  agency_account_name: string | null;
+  agency_iban: string | null;
+  agency_swift_bic: string | null;
+  primary_color: string | null;
+};
+
+// §6 — branding for the agency (AppyLead) commission invoice billed to contractors.
+export function buildAgencyBranding(company: AgencyBrandingRow | null): InvoiceBranding {
+  return {
+    name: company?.agency_name || "AppyLead Ltd",
+    tagline: null,
+    brandColor: company?.primary_color || DEFAULT_BRAND,
+    logoUrl: company?.agency_logo_url ?? null,
+    addressLines: compact(company?.agency_address),
+    email: company?.agency_email ?? null,
+    phone: null,
+    vatNumber: company?.agency_vat_number ?? null,
+    bankAccountName: company?.agency_account_name ?? company?.agency_bank_name ?? null,
+    bankSortCode: null,
+    bankAccountNumber: null,
+    bankIban: company?.agency_iban ?? null,
+    bankSwift: company?.agency_swift_bic ?? null,
+    terms: null,
   };
 }
 
@@ -292,13 +328,14 @@ export function generateInvoicePdfBase64(inv: PdfInvoice, b: InvoiceBranding): s
   }
 
   // ── Payment information box ──────────────────────────────────────────────────
-  if (b.bankAccountName || b.bankAccountNumber || b.bankIban) {
+  if (b.bankAccountName || b.bankAccountNumber || b.bankIban || b.bankSwift) {
     y += 16;
     const lines = compact(
       b.bankAccountName ? `Payable To: ${b.bankAccountName}` : null,
       b.bankSortCode ? `Sort Code: ${b.bankSortCode}` : null,
       b.bankAccountNumber ? `Account Number: ${b.bankAccountNumber}` : null,
       b.bankIban ? `IBAN: ${b.bankIban}` : null,
+      b.bankSwift ? `SWIFT/BIC: ${b.bankSwift}` : null,
     );
     const boxH = 12 + lines.length * 5;
     doc.setDrawColor(225, 225, 225);

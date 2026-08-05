@@ -47,6 +47,31 @@ export async function deleteContractor(id: string): Promise<{ error: string } | 
   redirect("/contractors");
 }
 
+// §5 — lift a commission-related suspension (admin). Also usable to re-suspend.
+export async function setContractorSuspension(
+  id: string,
+  suspended: boolean,
+  reason?: string,
+): Promise<{ error: string } | { ok: true }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { error } = await supabase
+    .from("contractors")
+    .update(
+      suspended
+        ? { suspended: true, suspended_at: new Date().toISOString(), suspension_reason: reason ?? null }
+        : { suspended: false, suspended_at: null, suspension_reason: null },
+    )
+    .eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/contractors");
+  revalidatePath(`/contractors/${id}`);
+  return { ok: true };
+}
+
 // ─── Subcontractors ─────────────────────────────────────────────────────────
 
 export async function createSubcontractor(values: unknown): Promise<{ error: string } | void> {

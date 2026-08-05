@@ -24,6 +24,9 @@ export const contractorInsertSchema = z.object({
   base_postcode: z.string().nullable().optional(),
   coverage_radius_miles: z.number().int().nullable().optional(),
   coverage_postcodes: z.array(z.string()).default([]),
+  suspended: z.boolean().default(false),
+  suspended_at: z.string().datetime().nullable().optional(),
+  suspension_reason: z.string().nullable().optional(),
 });
 
 export const contractorSelectSchema = baseSelectSchema.extend(contractorInsertSchema.shape);

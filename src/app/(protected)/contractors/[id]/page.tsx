@@ -7,6 +7,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AsyncButton } from "@/components/ui/async-button";
 import { deleteContractor } from "@/app/(protected)/contractors/actions";
+import { SuspensionControl } from "@/components/contractors/suspension-control";
 import type { Contractor } from "@/lib/schemas/contractors";
 
 export default async function ContractorDetailPage({
@@ -34,6 +35,9 @@ export default async function ContractorDetailPage({
 
   return (
     <div className="space-y-6">
+      {contractor.suspended && (
+        <SuspensionControl contractorId={id} suspended={true} reason={contractor.suspension_reason ?? null} />
+      )}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <Link
@@ -59,6 +63,9 @@ export default async function ContractorDetailPage({
           >
             <Pencil className="size-4" /> Edit
           </Link>
+          {!contractor.suspended && (
+            <SuspensionControl contractorId={id} suspended={false} reason={null} />
+          )}
           <AsyncButton action={deleteContractor.bind(null, id)} variant="outline" size="sm">
             <Trash2 className="size-4" /> Delete
           </AsyncButton>

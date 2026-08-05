@@ -227,6 +227,92 @@ export async function chaseCommissionInvoices(): Promise<AutomationResult> {
   return { ok: true, detail: `commission chase: ${sent} sent` };
 }
 
+// §5 — chase unpaid CONTRACTOR (AppyLead agency-fee) commission invoices:
+// friendly@2d, second@5d, final@7d, and SUSPEND the contractor@14d. Tracks which
+// stages have fired per invoice via reminder_stages_sent; one stage per run.
+const CONTRACTOR_CHASE_STAGES = [
+  { stage: 1, day: 2, label: "reminder", suspend: false },
+  { stage: 2, day: 5, label: "second reminder", suspend: false },
+  { stage: 3, day: 7, label: "final reminder", suspend: false },
+  { stage: 4, day: 14, label: "suspension", suspend: true },
+] as const;
+
+export async function chaseContractorCommissions(): Promise<AutomationResult> {
+  const supabase = await createServiceClient();
+  const now = Date.now();
+
+  const { data: settings } = await supabase
+    .from("company_settings").select("email").limit(1).maybeSingle<{ email: string | null }>();
+  const adminEmail = settings?.email ?? null;
+
+  const { data: invoices } = await supabase
+    .from("contractor_commission_invoices")
+    .select("id, invoice_number, contractor_id, contractor_name, contractor_email, total_due, status, sent_date, created_date, reminder_stages_sent")
+    .in("status", ["draft", "sent"]);
+
+  let acted = 0, suspended = 0;
+  for (const inv of invoices ?? []) {
+    const anchor = new Date(inv.sent_date ?? inv.created_date).getTime();
+    const ageDays = (now - anchor) / 86400_000;
+    const done: number[] = inv.reminder_stages_sent ?? [];
+
+    for (const s of CONTRACTOR_CHASE_STAGES) {
+      if (done.includes(s.stage) || ageDays < s.day) continue;
+
+      if (s.suspend) {
+        // Suspend the contractor (once) for the unpaid fee.
+        if (inv.contractor_id) {
+          await supabase
+            .from("contractors")
+            .update({
+              suspended: true,
+              suspended_at: new Date().toISOString(),
+              suspension_reason: `Unpaid commission invoice ${inv.invoice_number}`,
+            })
+            .eq("id", inv.contractor_id)
+            .eq("suspended", false);
+        }
+        await supabase
+          .from("contractor_commission_invoices")
+          .update({ suspended_contractor: true, reminder_stages_sent: [...done, s.stage] })
+          .eq("id", inv.id);
+        if (adminEmail) {
+          await sendEmail({
+            to: adminEmail,
+            subject: `⚠️ Contractor suspended — unpaid commission ${inv.invoice_number}`,
+            html: brandedEmail({
+              heading: "Contractor suspended",
+              body: `<p><strong>${inv.contractor_name ?? "A contractor"}</strong> has been suspended for not paying commission invoice <strong>${inv.invoice_number}</strong> (${money(inv.total_due)}), now 14+ days overdue.</p>`,
+            }),
+          });
+        }
+        suspended++;
+        break;
+      }
+
+      if (!inv.contractor_email) { break; }
+      const res = await sendEmail({
+        to: inv.contractor_email,
+        subject: `Commission invoice ${inv.invoice_number} — ${s.label}`,
+        html: brandedEmail({
+          heading: "Commission payment reminder",
+          body: `<p>Hi ${inv.contractor_name ?? "there"},</p>
+            <p>Commission invoice <strong>${inv.invoice_number}</strong> for <strong>${money(inv.total_due)}</strong> is still outstanding${s.stage >= 3 ? " and now overdue" : ""}. Please arrange payment to avoid suspension of new job assignments.</p>`,
+        }),
+      });
+      if (res.ok) {
+        await supabase
+          .from("contractor_commission_invoices")
+          .update({ reminder_stages_sent: [...done, s.stage] })
+          .eq("id", inv.id);
+        acted++;
+      }
+      break; // one stage per invoice per run
+    }
+  }
+  return { ok: true, detail: `contractor commission: ${acted} chased, ${suspended} suspended` };
+}
+
 // New-lead nurture sequence — sends each configured step once its delay elapses.
 export async function newLeadSequenceRunner(): Promise<AutomationResult> {
   const supabase = await createServiceClient();

@@ -5,6 +5,7 @@ import {
   send24HourJobReminder,
   overdueInvoiceReminder,
   chaseCommissionInvoices,
+  chaseContractorCommissions,
   newLeadSequenceRunner,
   quoteNotBookedRunner,
   invoiceNotPaidRunner,
@@ -75,6 +76,11 @@ export const CRON_JOBS: Record<string, CronJob> = {
     name: "chaseCommissionInvoices",
     schedule: "0 4 * * *",
     run: chaseCommissionInvoices,
+  },
+  "contractor-commission-chaser": {
+    name: "chaseContractorCommissions",
+    schedule: "0 8 * * *",
+    run: chaseContractorCommissions,
   },
   "monthly-commissions": stub("processMonthlyCommissions", "0 1 30 * *"),
 
