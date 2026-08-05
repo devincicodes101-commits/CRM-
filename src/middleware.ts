@@ -48,6 +48,12 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
+  // API routes authenticate themselves (cron secret, service role, webhooks) —
+  // never redirect them to /login.
+  if (pathname.startsWith("/api")) {
+    return supabaseResponse;
+  }
+
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
