@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { customerInsertSchema, customerUpdateSchema } from "@/lib/schemas/customers";
+import { logAuditEntry } from "@/lib/audit";
 
 export async function createCustomer(values: unknown): Promise<{ error: string } | void> {
   const parsed = customerInsertSchema.safeParse(values);
@@ -13,11 +14,12 @@ export async function createCustomer(values: unknown): Promise<{ error: string }
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const { error } = await supabase.from("customers").insert({
+  const { data, error } = await supabase.from("customers").insert({
     ...parsed.data,
     created_by_id: user.id,
-  });
+  }).select("id").single();
   if (error) return { error: error.message };
+  await logAuditEntry(supabase, { action: "create", entityType: "Customer", entityId: data?.id ?? null, entityName: parsed.data.name ?? null });
 
   revalidatePath("/customers");
   redirect("/customers");
@@ -30,6 +32,7 @@ export async function updateCustomer(id: string, values: unknown): Promise<{ err
   const supabase = await createClient();
   const { error } = await supabase.from("customers").update(parsed.data).eq("id", id);
   if (error) return { error: error.message };
+  await logAuditEntry(supabase, { action: "update", entityType: "Customer", entityId: id, entityName: parsed.data.name ?? null, changedFields: Object.keys(parsed.data) });
 
   revalidatePath("/customers");
   revalidatePath(`/customers/${id}`);
@@ -40,6 +43,7 @@ export async function deleteCustomer(id: string): Promise<{ error: string } | vo
   const supabase = await createClient();
   const { error } = await supabase.from("customers").delete().eq("id", id);
   if (error) return { error: error.message };
+  await logAuditEntry(supabase, { action: "delete", entityType: "Customer", entityId: id });
 
   revalidatePath("/customers");
   redirect("/customers");

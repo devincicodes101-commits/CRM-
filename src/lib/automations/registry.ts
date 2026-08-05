@@ -6,6 +6,8 @@ import {
   overdueInvoiceReminder,
   chaseCommissionInvoices,
   newLeadSequenceRunner,
+  quoteNotBookedRunner,
+  invoiceNotPaidRunner,
   resolveAuctionsSweep,
 } from "./scheduled";
 
@@ -35,6 +37,16 @@ export const CRON_JOBS: Record<string, CronJob> = {
     name: "newLeadSequenceRunner",
     schedule: "0 9 * * *",
     run: newLeadSequenceRunner,
+  },
+  "quote-not-booked-sequence": {
+    name: "quoteNotBookedRunner",
+    schedule: "0 11 * * *",
+    run: quoteNotBookedRunner,
+  },
+  "invoice-not-paid-sequence": {
+    name: "invoiceNotPaidRunner",
+    schedule: "0 12 * * *",
+    run: invoiceNotPaidRunner,
   },
   "high-value-commercial-reminder": stub("highValueCommercialReminder", "0 2 * * 1"),
 

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { jobInsertSchema, jobUpdateSchema } from "@/lib/schemas/jobs";
 import { onJobCreated } from "@/lib/automations/triggers";
+import { logAuditEntry } from "@/lib/audit";
 import { assignContractorToJob } from "@/lib/contractor-jobs";
 import { createAuction } from "./bid-actions";
 
@@ -29,6 +30,7 @@ export async function createJob(values: unknown): Promise<{ error: string } | vo
   if (error) return { error: error.message };
 
   onJobCreated({ ...parsed.data, id: data.id, message_token: data.message_token });
+  await logAuditEntry(supabase, { action: "create", entityType: "Job", entityId: data.id, entityName: parsed.data.title ?? null });
 
   // fire-and-forget sync to field app
   const fieldAppUrl = process.env.FIELD_APP_URL;
@@ -81,6 +83,7 @@ export async function createJobWithAssignment(
   if (error) return { error: error.message };
 
   onJobCreated({ ...parsed.data, id: data.id, message_token: data.message_token });
+  await logAuditEntry(supabase, { action: "create", entityType: "Job", entityId: data.id, entityName: parsed.data.title ?? null });
 
   if (assignment.mode === "contractor") {
     const res = await assignContractorToJob(supabase, {
@@ -105,6 +108,7 @@ export async function updateJob(id: string, values: unknown): Promise<{ error: s
   const supabase = await createClient();
   const { error } = await supabase.from("jobs").update(parsed.data).eq("id", id);
   if (error) return { error: error.message };
+  await logAuditEntry(supabase, { action: "update", entityType: "Job", entityId: id, entityName: parsed.data.title ?? null, changedFields: Object.keys(parsed.data) });
 
   revalidatePath("/jobs");
   revalidatePath(`/jobs/${id}`);
@@ -176,6 +180,7 @@ export async function deleteJob(id: string): Promise<{ error: string } | void> {
   const supabase = await createClient();
   const { error } = await supabase.from("jobs").delete().eq("id", id);
   if (error) return { error: error.message };
+  await logAuditEntry(supabase, { action: "delete", entityType: "Job", entityId: id });
 
   revalidatePath("/jobs");
   redirect("/jobs");

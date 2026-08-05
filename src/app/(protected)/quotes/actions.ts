@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { quoteInsertSchema, quoteUpdateSchema } from "@/lib/schemas/quotes";
 import { onQuoteCreated } from "@/lib/automations/triggers";
+import { logAuditEntry } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
 import { getBranding, quoteEmailHtml, type QuoteEmailData } from "@/lib/email-templates";
 
@@ -24,6 +25,7 @@ export async function createQuote(values: unknown): Promise<{ error: string } | 
   if (error) return { error: error.message };
 
   onQuoteCreated({ ...parsed.data, id: data.id, created_by_id: user.id });
+  await logAuditEntry(supabase, { action: "create", entityType: "Quote", entityId: data.id, entityName: parsed.data.customer_name ?? null });
 
   revalidatePath("/quotes");
   redirect(`/quotes/${data.id}`);
@@ -36,6 +38,7 @@ export async function updateQuote(id: string, values: unknown): Promise<{ error:
   const supabase = await createClient();
   const { error } = await supabase.from("quotes").update(parsed.data).eq("id", id);
   if (error) return { error: error.message };
+  await logAuditEntry(supabase, { action: "update", entityType: "Quote", entityId: id, entityName: parsed.data.customer_name ?? null, changedFields: Object.keys(parsed.data) });
 
   revalidatePath("/quotes");
   revalidatePath(`/quotes/${id}`);
@@ -100,6 +103,7 @@ export async function deleteQuote(id: string): Promise<{ error: string } | void>
   const supabase = await createClient();
   const { error } = await supabase.from("quotes").delete().eq("id", id);
   if (error) return { error: error.message };
+  await logAuditEntry(supabase, { action: "delete", entityType: "Quote", entityId: id });
 
   revalidatePath("/quotes");
   redirect("/quotes");

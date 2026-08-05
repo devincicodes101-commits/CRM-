@@ -13,6 +13,7 @@ import {
   type PdfInvoice,
 } from "@/lib/invoice-pdf";
 import { createContractorCommissionInvoice } from "@/lib/contractor-commission";
+import { logAuditEntry } from "@/lib/audit";
 
 // §8/§9/§10 — generate a white-label invoice for a job, attach a real PDF to the
 // email, persist it (deduped by job_id + invoice_type), and honour invoice_mode.
@@ -244,6 +245,7 @@ export async function createInvoice(values: unknown): Promise<{ error: string } 
     .select("id")
     .single();
   if (error) return { error: error.message };
+  await logAuditEntry(supabase, { action: "create", entityType: "Invoice", entityId: data.id, entityName: parsed.data.customer_name ?? null });
 
   revalidatePath("/invoices");
   redirect(`/invoices/${data.id}`);
@@ -256,6 +258,7 @@ export async function updateInvoice(id: string, values: unknown): Promise<{ erro
   const supabase = await createClient();
   const { error } = await supabase.from("invoices").update(parsed.data).eq("id", id);
   if (error) return { error: error.message };
+  await logAuditEntry(supabase, { action: "update", entityType: "Invoice", entityId: id, entityName: parsed.data.customer_name ?? null, changedFields: Object.keys(parsed.data) });
 
   revalidatePath("/invoices");
   revalidatePath(`/invoices/${id}`);
@@ -452,6 +455,7 @@ export async function deleteInvoice(id: string): Promise<{ error: string } | voi
   const supabase = await createClient();
   const { error } = await supabase.from("invoices").delete().eq("id", id);
   if (error) return { error: error.message };
+  await logAuditEntry(supabase, { action: "delete", entityType: "Invoice", entityId: id });
   revalidatePath("/invoices");
   redirect("/invoices");
 }

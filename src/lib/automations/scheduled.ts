@@ -1,8 +1,66 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email";
 import { brandedEmail, money } from "./emails";
 import { resolveExpiredAuctions } from "@/lib/auction-resolve";
 import type { AutomationResult } from "./types";
+
+const APP_BASE = process.env.NEXT_PUBLIC_BASE_URL ?? "";
+
+// ── Email-sequence shared helpers (§1) ───────────────────────────────────────
+type SeqType = "new_lead" | "quote_not_booked" | "invoice_not_paid";
+
+// Replace both {{key}} and {key} placeholders.
+function applyPlaceholders(text: string, vars: Record<string, string>): string {
+  let out = text ?? "";
+  for (const [k, v] of Object.entries(vars)) {
+    out = out.replaceAll(`{{${k}}}`, v).replaceAll(`{${k}}`, v);
+  }
+  return out;
+}
+
+// Dedup source for the sequence engine — one send per (type, step, related row).
+async function sequenceAlreadyLogged(
+  supabase: SupabaseClient, sequenceType: SeqType, step: number, relatedId: string,
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("sequence_email_logs")
+    .select("id")
+    .eq("sequence_type", sequenceType)
+    .eq("step_number", step)
+    .eq("related_id", relatedId)
+    .limit(1)
+    .maybeSingle();
+  return !!data;
+}
+
+async function logSequenceEmail(
+  supabase: SupabaseClient,
+  entry: {
+    sequenceType: SeqType;
+    step: number;
+    stepLabel?: string | null;
+    recipientEmail: string;
+    recipientName?: string | null;
+    relatedId: string;
+    relatedType: "lead" | "quote" | "invoice";
+    subject: string;
+    resendMessageId?: string | null;
+  },
+): Promise<void> {
+  await supabase.from("sequence_email_logs").insert({
+    sequence_type: entry.sequenceType,
+    step_number: entry.step,
+    step_label: entry.stepLabel ?? null,
+    recipient_email: entry.recipientEmail,
+    recipient_name: entry.recipientName ?? null,
+    related_id: entry.relatedId,
+    related_type: entry.relatedType,
+    subject: entry.subject,
+    sent_date: new Date().toISOString(),
+    resend_message_id: entry.resendMessageId ?? null,
+  });
+}
 
 // §3 — sweep expired-but-still-live auctions and resolve them (assign winner /
 // mark no-bids), so an auction closes even if nobody has the screen open.
@@ -175,7 +233,7 @@ export async function newLeadSequenceRunner(): Promise<AutomationResult> {
 
   const { data: steps } = await supabase
     .from("email_sequences")
-    .select("step, delay_days, subject, body")
+    .select("step, delay_days, subject, body, label")
     .eq("sequence_type", "new_lead")
     .eq("is_active", true)
     .order("step");
@@ -183,7 +241,7 @@ export async function newLeadSequenceRunner(): Promise<AutomationResult> {
 
   const { data: leads } = await supabase
     .from("leads")
-    .select("id, name, email, created_date, seq_steps_sent, status")
+    .select("id, name, email, service_interest, created_date, seq_steps_sent, status")
     .not("status", "in", '("won","lost")');
 
   let sent = 0;
@@ -193,21 +251,135 @@ export async function newLeadSequenceRunner(): Promise<AutomationResult> {
     for (const step of steps) {
       if (already.includes(step.step)) continue;
       if (lead.created_date > daysAgoISO(step.delay_days)) continue; // not due yet
-      const fill = (t: string) => (t ?? "").replaceAll("{name}", lead.name ?? "there");
+      const vars = {
+        name: lead.name ?? "there",
+        lead_name: lead.name ?? "there",
+        customer_name: lead.name ?? "there",
+        service_interest: lead.service_interest ?? "",
+      };
+      const subject = applyPlaceholders(step.subject, vars);
       const res = await sendEmail({
         to: lead.email,
-        subject: fill(step.subject),
-        html: brandedEmail({ heading: fill(step.subject), body: fill(step.body) }),
+        subject,
+        html: brandedEmail({ heading: subject, body: applyPlaceholders(step.body, vars) }),
       });
       if (res.ok) {
         already.push(step.step);
         await supabase.from("leads").update({ seq_steps_sent: already }).eq("id", lead.id);
+        await logSequenceEmail(supabase, {
+          sequenceType: "new_lead", step: step.step, stepLabel: step.label,
+          recipientEmail: lead.email, recipientName: lead.name,
+          relatedId: lead.id, relatedType: "lead", subject, resendMessageId: res.id,
+        });
         sent++;
       }
       break; // one step per lead per run
     }
   }
   return { ok: true, detail: `lead sequence: ${sent} sent` };
+}
+
+// §1 — quote_not_booked sequence: chase 'sent' quotes that haven't been accepted.
+export async function quoteNotBookedRunner(): Promise<AutomationResult> {
+  const supabase = await createServiceClient();
+  const { data: steps } = await supabase
+    .from("email_sequences")
+    .select("step, delay_days, subject, body, label")
+    .eq("sequence_type", "quote_not_booked")
+    .eq("is_active", true)
+    .order("step");
+  if (!steps || steps.length === 0) return { ok: true, detail: "no active quote_not_booked sequence" };
+
+  const { data: quotes } = await supabase
+    .from("quotes")
+    .select("id, quote_number, customer_name, customer_email, total, public_token, sent_date, created_date, status")
+    .eq("status", "sent");
+
+  let sent = 0;
+  for (const q of quotes ?? []) {
+    if (!q.customer_email) continue;
+    const anchor = q.sent_date ?? q.created_date;
+    for (const step of steps) {
+      if (anchor > daysAgoISO(step.delay_days)) continue;
+      if (await sequenceAlreadyLogged(supabase, "quote_not_booked", step.step, q.id)) continue;
+      const vars = {
+        name: q.customer_name ?? "there",
+        customer_name: q.customer_name ?? "there",
+        quote_number: q.quote_number ?? "",
+        total: money(q.total),
+      };
+      const subject = applyPlaceholders(step.subject, vars);
+      const res = await sendEmail({
+        to: q.customer_email,
+        subject,
+        html: brandedEmail({
+          heading: subject,
+          body: applyPlaceholders(step.body, vars),
+          cta: q.public_token ? { label: "View Your Quote", url: `${APP_BASE}/quote/${q.public_token}` } : undefined,
+        }),
+      });
+      if (res.ok) {
+        await logSequenceEmail(supabase, {
+          sequenceType: "quote_not_booked", step: step.step, stepLabel: step.label,
+          recipientEmail: q.customer_email, recipientName: q.customer_name,
+          relatedId: q.id, relatedType: "quote", subject, resendMessageId: res.id,
+        });
+        sent++;
+      }
+      break;
+    }
+  }
+  return { ok: true, detail: `quote sequence: ${sent} sent` };
+}
+
+// §1 — invoice_not_paid sequence: chase unpaid/overdue invoices.
+export async function invoiceNotPaidRunner(): Promise<AutomationResult> {
+  const supabase = await createServiceClient();
+  const { data: steps } = await supabase
+    .from("email_sequences")
+    .select("step, delay_days, subject, body, label")
+    .eq("sequence_type", "invoice_not_paid")
+    .eq("is_active", true)
+    .order("step");
+  if (!steps || steps.length === 0) return { ok: true, detail: "no active invoice_not_paid sequence" };
+
+  const { data: invoices } = await supabase
+    .from("invoices")
+    .select("id, invoice_number, customer_name, customer_email, total, due_date, sent_date, created_date, status")
+    .in("status", ["sent", "part_paid", "overdue"]);
+
+  let sent = 0;
+  for (const inv of invoices ?? []) {
+    if (!inv.customer_email) continue;
+    const anchor = inv.due_date ?? inv.sent_date ?? inv.created_date;
+    for (const step of steps) {
+      if (anchor > daysAgoISO(step.delay_days)) continue;
+      if (await sequenceAlreadyLogged(supabase, "invoice_not_paid", step.step, inv.id)) continue;
+      const vars = {
+        name: inv.customer_name ?? "there",
+        customer_name: inv.customer_name ?? "there",
+        invoice_number: inv.invoice_number ?? "",
+        total: money(inv.total),
+        due_date: inv.due_date ? new Date(inv.due_date).toLocaleDateString("en-GB") : "",
+      };
+      const subject = applyPlaceholders(step.subject, vars);
+      const res = await sendEmail({
+        to: inv.customer_email,
+        subject,
+        html: brandedEmail({ heading: subject, body: applyPlaceholders(step.body, vars) }),
+      });
+      if (res.ok) {
+        await logSequenceEmail(supabase, {
+          sequenceType: "invoice_not_paid", step: step.step, stepLabel: step.label,
+          recipientEmail: inv.customer_email, recipientName: inv.customer_name,
+          relatedId: inv.id, relatedType: "invoice", subject, resendMessageId: res.id,
+        });
+        sent++;
+      }
+      break;
+    }
+  }
+  return { ok: true, detail: `invoice sequence: ${sent} sent` };
 }
 
 // Scheduled jobs starting in the next ~24h → remind the customer (once).

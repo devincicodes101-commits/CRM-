@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { leadInsertSchema, leadUpdateSchema } from "@/lib/schemas/leads";
 import { onLeadCreated } from "@/lib/automations/triggers";
+import { logAuditEntry } from "@/lib/audit";
 
 export async function createLead(values: unknown): Promise<{ error: string } | void> {
   const parsed = leadInsertSchema.safeParse(values);
@@ -22,6 +23,7 @@ export async function createLead(values: unknown): Promise<{ error: string } | v
   if (error) return { error: error.message };
 
   onLeadCreated({ ...parsed.data, id: data.id });
+  await logAuditEntry(supabase, { action: "create", entityType: "Lead", entityId: data.id, entityName: parsed.data.name ?? null });
 
   revalidatePath("/leads");
   redirect(`/leads/${data.id}`);
@@ -34,6 +36,7 @@ export async function updateLead(id: string, values: unknown): Promise<{ error: 
   const supabase = await createClient();
   const { error } = await supabase.from("leads").update(parsed.data).eq("id", id);
   if (error) return { error: error.message };
+  await logAuditEntry(supabase, { action: "update", entityType: "Lead", entityId: id, entityName: parsed.data.name ?? null, changedFields: Object.keys(parsed.data) });
 
   revalidatePath("/leads");
   revalidatePath(`/leads/${id}`);
@@ -93,6 +96,7 @@ export async function deleteLead(id: string): Promise<{ error: string } | void> 
   const supabase = await createClient();
   const { error } = await supabase.from("leads").delete().eq("id", id);
   if (error) return { error: error.message };
+  await logAuditEntry(supabase, { action: "delete", entityType: "Lead", entityId: id });
 
   revalidatePath("/leads");
   redirect("/leads");
