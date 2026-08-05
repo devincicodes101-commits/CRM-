@@ -1,6 +1,33 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isAuthorizedCron } from "@/lib/cron";
 import { CRON_JOBS } from "@/lib/automations/registry";
+import { createServiceClient } from "@/lib/supabase/server";
+import { setEmailBrand } from "@/lib/automations/emails";
+
+// Load company branding once so every automation email is branded (logo, name,
+// colour, contact) instead of the generic fallback.
+async function loadBrand() {
+  try {
+    const sb = await createServiceClient();
+    const { data } = await sb
+      .from("company_settings")
+      .select("company_name, tagline, logo_url, primary_color, email, phone")
+      .limit(1)
+      .maybeSingle();
+    if (data) {
+      setEmailBrand({
+        companyName: data.company_name,
+        tagline: data.tagline,
+        logoUrl: data.logo_url,
+        brandColor: data.primary_color,
+        email: data.email,
+        phone: data.phone,
+      });
+    }
+  } catch (e) {
+    console.error("[cron] brand load failed", e);
+  }
+}
 
 // Single dispatcher for every scheduled automation.
 // Vercel Cron (see vercel.json) calls GET /api/cron/<slug> on schedule;
@@ -24,6 +51,7 @@ export async function GET(
   }
 
   try {
+    await loadBrand();
     const result = await def.run();
     return NextResponse.json({ job, name: def.name, ...result });
   } catch (e) {
