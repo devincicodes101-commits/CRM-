@@ -13,6 +13,8 @@ const PUBLIC_PATHS = [
   "/chat",
   "/job-messages/",
   "/subcontractor",
+  "/staff-signup",
+  "/reschedule/",
 ];
 
 export async function middleware(request: NextRequest) {
@@ -67,6 +69,8 @@ export async function middleware(request: NextRequest) {
 
     const role = profile?.role;
 
+    // Contractors are hard-gated to the field app + their onboarding, regardless
+    // of any per-user nav permissions (§9).
     if (role === "contractor" && pathname !== "/onboarding") {
       const { data: contractor } = await supabase
         .from("contractors")
@@ -77,6 +81,13 @@ export async function middleware(request: NextRequest) {
       if (!contractor?.registration_completed) {
         const url = request.nextUrl.clone();
         url.pathname = "/onboarding";
+        return NextResponse.redirect(url);
+      }
+
+      // Registered contractors may only see the field app.
+      if (!pathname.startsWith("/field")) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/field";
         return NextResponse.redirect(url);
       }
     }

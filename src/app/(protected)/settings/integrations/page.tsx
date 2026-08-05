@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { ChevronLeft, CheckCircle, XCircle } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { ChevronLeft } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { IntegrationCard } from "./integration-card";
 
 type Integration = {
   key: string;
@@ -46,22 +47,16 @@ const INTEGRATIONS: Integration[] = [
   },
 ];
 
-function EnvCheck({ name }: { name: string }) {
-  // In a server component we can check process.env directly
-  const set = !!process.env[name];
-  return (
-    <div className="flex items-center gap-1.5 text-xs">
-      {set ? (
-        <CheckCircle className="size-3.5 text-green-500" />
-      ) : (
-        <XCircle className="size-3.5 text-red-400" />
-      )}
-      <code className="font-mono">{name}</code>
-    </div>
-  );
-}
+type ConnRow = { integration_key: string; is_connected: boolean; credentials: { notes?: string } | null };
 
-export default function IntegrationsPage() {
+export default async function IntegrationsPage() {
+  const supabase = await createClient();
+  const { data: conns } = await supabase
+    .from("integration_connections")
+    .select("integration_key, is_connected, credentials")
+    .returns<ConnRow[]>();
+  const byKey = new Map((conns ?? []).map((c) => [c.integration_key, c]));
+
   return (
     <div className="space-y-6">
       <div>
@@ -73,34 +68,32 @@ export default function IntegrationsPage() {
         </Link>
         <h1 className="text-2xl font-bold">Integrations</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Configure environment variables in your <code className="text-xs">.env.local</code> file
+          Live keys are read from environment variables; mark what&apos;s connected and add account notes here.
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {INTEGRATIONS.map((intg) => (
-          <div key={intg.key} className="rounded-xl border bg-card p-4 space-y-3">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <p className="font-semibold text-sm">{intg.name}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{intg.description}</p>
-              </div>
-              <Badge variant="outline" className="text-xs shrink-0">{intg.category}</Badge>
-            </div>
-            <div className="space-y-1 border-t pt-3">
-              {intg.envVars.map((v) => (
-                <EnvCheck key={v} name={v} />
-              ))}
-            </div>
-          </div>
-        ))}
+        {INTEGRATIONS.map((intg) => {
+          const conn = byKey.get(intg.key);
+          return (
+            <IntegrationCard
+              key={intg.key}
+              intgKey={intg.key}
+              name={intg.name}
+              category={intg.category}
+              description={intg.description}
+              envStatus={intg.envVars.map((v) => ({ name: v, set: !!process.env[v] }))}
+              initialConnected={conn?.is_connected ?? intg.envVars.every((v) => !!process.env[v])}
+              initialNotes={conn?.credentials?.notes ?? ""}
+            />
+          );
+        })}
       </div>
 
       <div className="rounded-xl border border-muted bg-muted/30 p-4 text-sm space-y-1.5">
         <p className="font-medium">How to configure</p>
         <p className="text-muted-foreground text-xs">
-          Add the required environment variables to your <code>.env.local</code> file at the project root.
-          Restart the dev server after changes. Never commit this file to git.
+          Add the required environment variables in Vercel (Project → Settings → Environment Variables) and redeploy.
         </p>
       </div>
     </div>

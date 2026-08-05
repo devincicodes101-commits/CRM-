@@ -6,6 +6,7 @@ import {
   overdueInvoiceReminder,
   chaseCommissionInvoices,
   chaseContractorCommissions,
+  processMonthlyCommissions,
   newLeadSequenceRunner,
   quoteNotBookedRunner,
   invoiceNotPaidRunner,
@@ -82,7 +83,11 @@ export const CRON_JOBS: Record<string, CronJob> = {
     schedule: "0 8 * * *",
     run: chaseContractorCommissions,
   },
-  "monthly-commissions": stub("processMonthlyCommissions", "0 1 30 * *"),
+  "monthly-commissions": {
+    name: "processMonthlyCommissions",
+    schedule: "0 1 30 * *",
+    run: processMonthlyCommissions,
+  },
 
   // ── Auctions ──────────────────────────────────────────────
   // Hobby plan caps crons at once/day; the auction sweep is only a backstop

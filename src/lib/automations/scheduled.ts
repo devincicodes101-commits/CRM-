@@ -313,6 +313,71 @@ export async function chaseContractorCommissions(): Promise<AutomationResult> {
   return { ok: true, detail: `contractor commission: ${acted} chased, ${suspended} suspended` };
 }
 
+// §16 — monthly operative bonuses. For each operative, compute this month's
+// jobs done / avg rating / attendance %, match the highest-priority bonus tier
+// and create a pending operative_bonuses row (deduped per operative + month).
+export async function processMonthlyCommissions(): Promise<AutomationResult> {
+  const supabase = await createServiceClient();
+  const now = new Date();
+  const monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
+
+  const { data: tiers } = await supabase
+    .from("bonus_settings")
+    .select("tier_name, min_star_rating, min_jobs_completed, min_attendance_percentage, bonus_amount_gbp, priority")
+    .eq("is_active", true)
+    .order("priority", { ascending: false });
+  if (!tiers || tiers.length === 0) return { ok: true, detail: "no active bonus tiers" };
+
+  const [{ data: operatives }, { data: completions }, { data: attendance }] = await Promise.all([
+    supabase.from("users").select("id, full_name").eq("role", "operative"),
+    supabase.from("job_completions").select("operative_name, star_rating, completed_date")
+      .gte("completed_date", monthStart).lte("completed_date", monthEnd),
+    supabase.from("attendance").select("operative_id, status, attendance_date")
+      .gte("attendance_date", monthStart.slice(0, 10)).lte("attendance_date", monthEnd.slice(0, 10)),
+  ]);
+
+  let created = 0;
+  for (const op of operatives ?? []) {
+    try {
+      const mine = (completions ?? []).filter((c) => c.operative_name === op.full_name);
+      const jobsDone = mine.length;
+      const ratings = mine.map((c) => c.star_rating).filter((r): r is number => r != null);
+      const avgRating = ratings.length ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
+      const att = (attendance ?? []).filter((a) => a.operative_id === op.id);
+      const present = att.filter((a) => a.status === "present" || a.status === "late").length;
+      const attendancePct = att.length ? (present / att.length) * 100 : 100;
+
+      const tier = tiers.find(
+        (t) =>
+          avgRating >= Number(t.min_star_rating ?? 0) &&
+          jobsDone >= Number(t.min_jobs_completed ?? 0) &&
+          attendancePct >= Number(t.min_attendance_percentage ?? 0),
+      );
+      if (!tier) continue;
+
+      const { data: existing } = await supabase
+        .from("operative_bonuses").select("id").eq("operative_id", op.id).eq("month_year", monthYear).maybeSingle();
+      if (existing) continue;
+
+      const { error } = await supabase.from("operative_bonuses").insert({
+        operative_id: op.id,
+        operative_name: op.full_name,
+        month_year: monthYear,
+        base_bonus: tier.bonus_amount_gbp,
+        total_bonus: tier.bonus_amount_gbp,
+        status: "pending",
+        notes: `Tier: ${tier.tier_name ?? "—"} (${jobsDone} jobs, ${avgRating.toFixed(1)}★, ${attendancePct.toFixed(0)}% attendance)`,
+      });
+      if (!error) created++;
+    } catch (e) {
+      console.error("[monthlyBonus] operative failed", op.id, e);
+    }
+  }
+  return { ok: true, detail: `monthly bonuses: ${created} created` };
+}
+
 // New-lead nurture sequence — sends each configured step once its delay elapses.
 export async function newLeadSequenceRunner(): Promise<AutomationResult> {
   const supabase = await createServiceClient();

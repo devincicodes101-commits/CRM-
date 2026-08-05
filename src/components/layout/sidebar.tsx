@@ -26,9 +26,14 @@ export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
-  const visible = NAV_ITEMS.filter(
-    (item) => !item.roles || item.roles.includes(user.role as UserRole)
-  );
+  // Role gate, then per-user nav_permissions (empty = all; non-empty = restrict
+  // to those base paths). §9.
+  const perms = user.nav_permissions ?? [];
+  const visible = NAV_ITEMS.filter((item) => {
+    if (item.roles && !item.roles.includes(user.role as UserRole)) return false;
+    if (perms.length > 0 && !perms.some((p) => item.href === p || item.href.startsWith(`${p}/`))) return false;
+    return true;
+  });
 
   async function signOut() {
     const supabase = createClient();

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Settings2, ClipboardList, Trophy, Users2, Receipt } from "lucide-react";
+import { Settings2, ClipboardList, Trophy, Users2, Receipt, UserPlus, Globe } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { TestEmailButton } from "./test-email-button";
 
@@ -33,6 +33,18 @@ const SECTIONS = [
     icon: Settings2,
     label: "Integrations",
     description: "Connect Resend, Twilio, Stripe and more",
+  },
+  {
+    href: "/settings/signups",
+    icon: UserPlus,
+    label: "Signup Requests",
+    description: "Approve field-team access requests",
+  },
+  {
+    href: "/website-domains",
+    icon: Globe,
+    label: "Website & SEO",
+    description: "Manage domains and SEO keywords",
   },
 ];
 
