@@ -24,15 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-
 type FormValues = z.input<typeof quoteInsertSchema>;
 
 type Props = {
@@ -244,51 +235,48 @@ export function QuoteBuilder({ quote, customers, services, templates = [] }: Pro
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-        <Table className="min-w-[620px]">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[240px]">Service / Description</TableHead>
-              <TableHead className="w-[80px]">Qty</TableHead>
-              <TableHead className="w-[110px]">Unit Price</TableHead>
-              <TableHead className="w-[110px]">Total</TableHead>
-              <TableHead className="w-[40px]" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {fields.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                  No items yet. Add a service above.
-                </TableCell>
-              </TableRow>
-            )}
-            {fields.map((field, i) => {
-              const qty = Number(watchedItems[i]?.quantity ?? 0);
-              const price = Number(watchedItems[i]?.unit_price ?? 0);
-              const rowTotal = qty * price;
-              return (
-                <TableRow key={field.id}>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <Input
-                        placeholder="Service name"
-                        {...register(`items.${i}.service_name`)}
-                        className="h-7 text-sm"
-                      />
-                      <Input
-                        placeholder="Description (optional)"
-                        {...register(`items.${i}.description`)}
-                        className="h-7 text-xs text-muted-foreground"
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell>
+        <div className="space-y-3">
+          {fields.length === 0 && (
+            <p className="rounded-lg border border-dashed py-8 text-center text-sm text-muted-foreground">
+              No items yet. Add a service above.
+            </p>
+          )}
+          {fields.map((field, i) => {
+            const qty = Number(watchedItems[i]?.quantity ?? 0);
+            const price = Number(watchedItems[i]?.unit_price ?? 0);
+            const rowTotal = qty * price;
+            return (
+              <div key={field.id} className="rounded-lg border bg-muted/20 p-3 space-y-2.5">
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="Service name"
+                    {...register(`items.${i}.service_name`)}
+                    className="flex-1 font-medium"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="shrink-0"
+                    onClick={() => remove(i)}
+                    aria-label="Remove item"
+                  >
+                    <Trash2 className="size-4 text-destructive" />
+                  </Button>
+                </div>
+                <Textarea
+                  placeholder="Description (optional)"
+                  rows={2}
+                  {...register(`items.${i}.description`)}
+                  className="text-sm resize-none"
+                />
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Qty</Label>
                     <Input
                       type="number"
                       min="0"
                       step="0.01"
-                      className="h-7 w-20"
                       {...register(`items.${i}.quantity`, { valueAsNumber: true })}
                       onChange={(e) => {
                         const v = parseFloat(e.target.value) || 0;
@@ -296,13 +284,13 @@ export function QuoteBuilder({ quote, customers, services, templates = [] }: Pro
                         setValue(`items.${i}.total`, v * price);
                       }}
                     />
-                  </TableCell>
-                  <TableCell>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Unit Price (£)</Label>
                     <Input
                       type="number"
                       min="0"
                       step="0.01"
-                      className="h-7 w-28"
                       {...register(`items.${i}.unit_price`, { valueAsNumber: true })}
                       onChange={(e) => {
                         const v = parseFloat(e.target.value) || 0;
@@ -310,23 +298,15 @@ export function QuoteBuilder({ quote, customers, services, templates = [] }: Pro
                         setValue(`items.${i}.total`, qty * v);
                       }}
                     />
-                  </TableCell>
-                  <TableCell className="font-medium">{fmt(rowTotal)}</TableCell>
-                  <TableCell>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => remove(i)}
-                    >
-                      <Trash2 className="size-3.5 text-destructive" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Total</Label>
+                    <div className="h-9 flex items-center font-semibold text-sm">{fmt(rowTotal)}</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
