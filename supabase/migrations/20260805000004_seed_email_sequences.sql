@@ -6,9 +6,9 @@
 --               {{invoice_number}} {{due_date}} {{service_interest}}
 
 INSERT INTO public.email_sequences (sequence_type, step, delay_days, subject, body, label)
-SELECT v.sequence_type, v.step, v.delay_days, v.subject, v.body, v.label
+SELECT v.sequence_type::email_sequence_type, v.step, v.delay_days, v.subject, v.body, v.label
 FROM (VALUES
-  ('new_lead'::email_sequence_type, 1, 0, 'Thanks for getting in touch',
+  ('new_lead', 1, 0, 'Thanks for getting in touch',
    '<p>Hi {{customer_name}},</p><p>Thanks for your enquiry about {{service_interest}}. One of our team will be in touch shortly. In the meantime, reply to this email with any details and we''ll get you a fast, no-obligation quote.</p>',
    'Welcome'),
   ('new_lead', 2, 3, 'Still need a hand?',
@@ -29,5 +29,5 @@ FROM (VALUES
 ) AS v(sequence_type, step, delay_days, subject, body, label)
 WHERE NOT EXISTS (
   SELECT 1 FROM public.email_sequences e
-  WHERE e.sequence_type = v.sequence_type AND e.step = v.step
+  WHERE e.sequence_type = v.sequence_type::email_sequence_type AND e.step = v.step
 );
