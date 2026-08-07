@@ -45,6 +45,16 @@ async function respondToQuote(
     .eq("id", quote.id);
   if (error) return { error: error.message };
 
+  // When accepted, mark any linked lead (e.g. AI-generated) as won so it drops
+  // out of the live-lead list.
+  if (status === "accepted") {
+    await supabase
+      .from("leads")
+      .update({ status: "won" })
+      .eq("converted_to_quote_id", quote.id)
+      .not("status", "in", '("won","lost")');
+  }
+
   revalidatePath(`/quote/${token}`);
 }
 
@@ -165,6 +175,13 @@ export async function bookJobFromQuote(
   if (jobErr || !job) return { error: jobErr?.message ?? "Could not create the booking." };
 
   await supabase.from("quotes").update({ status: "accepted" }).eq("id", quote.id);
+
+  // Move any linked lead to won now the quote is booked.
+  await supabase
+    .from("leads")
+    .update({ status: "won" })
+    .eq("converted_to_quote_id", quote.id)
+    .not("status", "in", '("won","lost")');
 
   // Emails — best-effort, never block the confirmation.
   try {

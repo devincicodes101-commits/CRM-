@@ -507,9 +507,19 @@ export async function newLeadSequenceRunner(): Promise<AutomationResult> {
     .order("step");
   if (!steps || steps.length === 0) return { ok: true, detail: "no active new_lead sequence" };
 
+  // Enrolment cutoff: only leads created on/after new_lead_sequence_start_date are
+  // enrolled — so switching the sequence on never retroactively emails the whole
+  // back catalogue. Unset → default to today (only new leads going forward).
+  const { data: settings } = await supabase
+    .from("company_settings").select("new_lead_sequence_start_date").limit(1).maybeSingle<{ new_lead_sequence_start_date: string | null }>();
+  const cutoffISO = settings?.new_lead_sequence_start_date
+    ? new Date(`${settings.new_lead_sequence_start_date.slice(0, 10)}T00:00:00.000Z`).toISOString()
+    : new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`).toISOString();
+
   const { data: leads } = await supabase
     .from("leads")
     .select("id, name, email, service_interest, created_date, seq_steps_sent, status")
+    .gte("created_date", cutoffISO)
     .not("status", "in", '("won","lost")');
 
   let sent = 0;
