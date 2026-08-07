@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MapPin, Clock, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { LocationShare } from "@/components/field/location-share";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Job } from "@/lib/schemas/jobs";
@@ -73,6 +74,8 @@ export default async function FieldPage() {
           🎡 Spin
         </Link>
       </div>
+
+      <LocationShare />
 
       {/* Today's jobs */}
       <section className="space-y-3">
