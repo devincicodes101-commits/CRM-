@@ -66,6 +66,9 @@ export async function resolveOneAuction(
       auction_winning_bid: winner.bid_amount,
       auction_winning_bidder_id: winner.contractor_user_id,
       auction_current_bid: winner.bid_amount,
+      // Winning an auction IS the commitment — no separate acceptance needed.
+      contractor_acceptance: "accepted",
+      rejection_reason: null,
     })
     .eq("id", jobId);
 
