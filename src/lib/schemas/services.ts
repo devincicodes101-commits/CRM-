@@ -7,6 +7,7 @@ export const serviceInsertSchema = z.object({
   description: z.string().nullable().optional(),
   unit_price: z.number().min(0),
   unit_type: z.enum(['per_sqm', 'per_lm', 'per_hour', 'per_day', 'fixed', 'per_unit']).default('fixed'),
+  licence_type: z.enum(['non_licenced', 'licenced']).default('non_licenced'),
   estimated_duration: z.string().nullable().optional(),
   image_url: z.string().nullable().optional(),
   video_prompt: z.string().nullable().optional(),

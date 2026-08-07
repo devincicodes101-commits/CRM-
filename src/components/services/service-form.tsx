@@ -53,6 +53,7 @@ export function ServiceForm({ service }: Props) {
       description: "",
       unit_price: 0,
       unit_type: "fixed",
+      licence_type: "non_licenced",
       estimated_duration: "",
       is_active: true,
     },
@@ -126,6 +127,27 @@ export function ServiceForm({ service }: Props) {
               </Select>
             )}
           />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Licence Classification</Label>
+          <Controller
+            name="licence_type"
+            control={control}
+            render={({ field }) => (
+              <Select value={field.value ?? "non_licenced"} onValueChange={(v) => field.onChange(v)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="non_licenced">Non-licenced work</SelectItem>
+                  <SelectItem value="licenced">Licenced work</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          />
+          <p className="text-xs text-muted-foreground">
+            Licenced services (e.g. AIB, garage ceilings) route jobs only to licenced contractors.
+          </p>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="estimated_duration">Estimated Duration</Label>

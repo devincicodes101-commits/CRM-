@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email";
 import { generateDateSuggestions, type BookingJob, type DateSuggestion } from "@/lib/booking";
 import { inviteCoveringContractors } from "@/lib/contractor-jobs";
+import { deriveRequiresLicence } from "@/lib/licence";
 import {
   getBranding,
   bookingConfirmationHtml,
@@ -136,7 +137,7 @@ export async function bookJobFromQuote(
       customer_name: string | null;
       customer_email: string | null;
       customer_address: string | null;
-      items: { service_name: string }[] | null;
+      items: { service_name: string; service_id?: string | null }[] | null;
       total: number | null;
     }>();
 
@@ -149,6 +150,7 @@ export async function bookJobFromQuote(
   const firstService = quote.items?.[0]?.service_name || "Work";
   const jobTitle = `${firstService} — ${quote.customer_name ?? "Customer"}`;
   const description = (quote.items ?? []).map((i) => i.service_name).join(", ");
+  const requiresLicence = await deriveRequiresLicence(supabase, quote.items);
 
   const { data: job, error: jobErr } = await supabase
     .from("jobs")
@@ -167,6 +169,7 @@ export async function bookJobFromQuote(
       status: "scheduled",
       priority: "high",
       total_value: quote.total ?? 0,
+      requires_licence: requiresLicence,
       color: "#f97316",
       notes: `Self-scheduled by customer from quote ${quote.quote_number}`,
     })

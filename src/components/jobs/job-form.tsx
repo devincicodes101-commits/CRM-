@@ -107,6 +107,7 @@ export function JobForm({
             status: "scheduled",
             priority: "medium",
             total_value: 0,
+            requires_licence: false,
             color: "#f97316",
             notes: "",
             client_photos: [],
@@ -469,6 +470,17 @@ export function JobForm({
           <div className="space-y-1.5">
             <Label htmlFor="color">Calendar Colour</Label>
             <Input id="color" type="color" {...register("color")} className="h-8 w-16 p-1 cursor-pointer" />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <label htmlFor="requires_licence" className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+              <input
+                id="requires_licence"
+                type="checkbox"
+                {...register("requires_licence")}
+                className="size-4 rounded border-input accent-primary"
+              />
+              Licenced work (only licenced contractors can be invited)
+            </label>
           </div>
         </div>
       </div>

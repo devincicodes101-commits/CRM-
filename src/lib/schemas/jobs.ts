@@ -50,6 +50,7 @@ export const jobInsertSchema = z.object({
   status: z.enum(['scheduled', 'on_hold', 'in_progress', 'invoiced', 'awaiting_payment', 'completed', 'cancelled']).default('scheduled'),
   priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
   total_value: z.number().min(0).default(0),
+  requires_licence: z.boolean().default(false),
   notes: z.string().nullable().optional(),
   color: z.string().default('#f97316'),
   reminder_24h_sent: z.boolean().default(false),
