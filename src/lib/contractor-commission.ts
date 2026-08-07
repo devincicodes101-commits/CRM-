@@ -39,7 +39,12 @@ export async function createContractorCommissionInvoice(
       .maybeSingle();
 
     const feePercent = Number(job.agency_fee_percent ?? settings?.agency_fee_percent ?? DEFAULT_AGENCY_FEE);
-    const commission = Math.round(((jobValue * feePercent) / 100) * 100) / 100;
+    // Base44 sendAgencyFeeInvoice: when the job carries a contractor_pay_amount
+    // (an auction winning bid the contractor already paid the company), the fee
+    // is charged on the COMPANY'S SHARE, not the full job value — otherwise on
+    // the full value (direct assignment).
+    const commissionBase = contractorPay > 0 ? Math.max(0, jobValue - contractorPay) : jobValue;
+    const commission = Math.round(((commissionBase * feePercent) / 100) * 100) / 100;
     if (!(commission > 0)) return { skipped: "no_commission" };
     const vatAmount = settings?.agency_vat_number ? Math.round(commission * 0.2 * 100) / 100 : 0;
     const totalDue = Math.round((commission + vatAmount) * 100) / 100;
@@ -90,7 +95,7 @@ export async function createContractorCommissionInvoice(
     try {
       const branding = buildAgencyBranding(settings ?? null);
       const vatRate = vatAmount > 0 ? 20 : 0;
-      const items = [{ service_name: `Agency commission (${feePercent}%) — ${job.title ?? "Job"}`, quantity: 1, unit_price: commission, total: commission }];
+      const items = [{ service_name: `Agency commission (${feePercent}% of £${commissionBase.toFixed(2)}) — ${job.title ?? "Job"}`, quantity: 1, unit_price: commission, total: commission }];
       const pdfInvoice: PdfInvoice = {
         invoice_number: inserted.invoice_number,
         invoice_type: "standard",
@@ -106,7 +111,9 @@ export async function createContractorCommissionInvoice(
         vat_amount: vatAmount,
         total: totalDue,
         amount_paid: 0,
-        notes: `Agency fee of ${feePercent}% on job "${job.title ?? ""}" (job value £${jobValue.toFixed(2)}).`,
+        notes: contractorPay > 0
+          ? `Agency fee of ${feePercent}% on the company share of job "${job.title ?? ""}" (job value £${jobValue.toFixed(2)} − contractor pay £${contractorPay.toFixed(2)} = £${commissionBase.toFixed(2)}).`
+          : `Agency fee of ${feePercent}% on job "${job.title ?? ""}" (job value £${jobValue.toFixed(2)}).`,
       };
       const pdfBase64 = generateInvoicePdfBase64(pdfInvoice, branding);
 

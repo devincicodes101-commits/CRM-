@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email";
 import { generateDateSuggestions, type BookingJob, type DateSuggestion } from "@/lib/booking";
+import { inviteCoveringContractors } from "@/lib/contractor-jobs";
 import {
   getBranding,
   bookingConfirmationHtml,
@@ -226,6 +227,10 @@ export async function bookJobFromQuote(
   } catch {
     // swallow — the booking itself succeeded
   }
+
+  // Base44 publicBookJob: auto-invite covering contractors to the new job.
+  // Best-effort, service-role (no session on this public route).
+  await inviteCoveringContractors(supabase, job.id).catch(() => {});
 
   revalidatePath(`/quote/${token}`);
   return { ok: true };

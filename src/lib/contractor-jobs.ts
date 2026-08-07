@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getBranding, contractorAssignmentHtml } from "@/lib/email-templates";
+import { getBranding, contractorAssignmentHtml, bidInviteHtml } from "@/lib/email-templates";
 import { sendEmail } from "@/lib/email";
-import { outwardCode } from "@/lib/coverage";
+import { getCoveringContractors, outwardCode, type CoverageContractor } from "@/lib/coverage";
 
 // Shared logic for §2/§7: assigning a contractor to a job and notifying them.
 // Kept out of the "use server" action files so both server actions and the
@@ -91,6 +91,102 @@ export async function notifyContractorAssignment(
     });
   } catch (e) {
     console.error("[notifyContractorAssignment] failed", e);
+  }
+}
+
+type InviteContractorRow = CoverageContractor & {
+  contact_name: string | null;
+  company_name: string | null;
+  email: string | null;
+  user_id: string | null;
+  licence_type: string | null;
+  suspended: boolean | null;
+};
+
+const INVITE_CONTRACTOR_COLS =
+  "id, contact_name, company_name, email, user_id, coverage_mode, base_postcode, coverage_radius_miles, coverage_postcodes, licence_type, suspended";
+
+/**
+ * §4 — AUTOMATIC covering-contractor invite, session-free so it can run from the
+ * public online-booking flow (service-role, no user). Mirrors the automatic
+ * branch of the inviteContractorsForJob server action: matches all non-suspended
+ * contractors covering the job postcode (licence-filtered for licenced jobs),
+ * upserts bid invites deduped on (job_id, contractor_id), and emails only the
+ * newly-invited ones. Never throws.
+ */
+export async function inviteCoveringContractors(
+  supabase: SupabaseClient,
+  jobId: string,
+  createdById: string | null = null,
+): Promise<{ invited: number }> {
+  try {
+    const { data: job } = await supabase
+      .from("jobs")
+      .select("id, title, address, start_date, total_value, requires_licence")
+      .eq("id", jobId)
+      .single<{
+        id: string;
+        title: string | null;
+        address: string | null;
+        start_date: string | null;
+        total_value: number | null;
+        requires_licence: boolean | null;
+      }>();
+    if (!job) return { invited: 0 };
+
+    const { data: contractors } = await supabase
+      .from("contractors")
+      .select(INVITE_CONTRACTOR_COLS)
+      .or("suspended.is.null,suspended.eq.false")
+      .returns<InviteContractorRow[]>();
+    let pool = contractors ?? [];
+    if (job.requires_licence) pool = pool.filter((c) => c.licence_type === "licenced");
+
+    const covering = await getCoveringContractors(pool, outwardCode(job.address));
+    const targets = covering.map((c) => c.contractor);
+    if (targets.length === 0) return { invited: 0 };
+
+    const rows = targets.map((c) => ({
+      job_id: jobId,
+      contractor_id: c.id,
+      contractor_user_id: c.user_id,
+      contractor_name: c.company_name || c.contact_name,
+      contractor_email: c.email,
+      status: "invited" as const,
+      created_by_id: createdById,
+    }));
+
+    const { data: inserted } = await supabase
+      .from("contractor_bids")
+      .upsert(rows, { onConflict: "job_id,contractor_id", ignoreDuplicates: true })
+      .select("contractor_name, contractor_email");
+
+    const branding = await getBranding(supabase);
+    const area = outwardCode(job.address);
+    const bidLink = fieldJobLink(branding.appBaseUrl, jobId);
+    for (const row of inserted ?? []) {
+      if (!row.contractor_email) continue;
+      await sendEmail({
+        to: row.contractor_email,
+        subject: `You're invited to a job — ${job.title ?? "Job"}`,
+        html: bidInviteHtml(
+          {
+            contractorName: row.contractor_name || "there",
+            jobTitle: job.title ?? "Job",
+            jobDateLong: longDate(job.start_date),
+            customerArea: area,
+            jobValue: job.total_value ?? 0,
+            bidLink,
+          },
+          branding,
+        ),
+        from: branding.from,
+      });
+    }
+    return { invited: (inserted ?? []).length };
+  } catch (e) {
+    console.error("[inviteCoveringContractors] failed", e);
+    return { invited: 0 };
   }
 }
 
