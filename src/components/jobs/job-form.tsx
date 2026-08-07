@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 import {
   Select,
   SelectContent,
@@ -330,11 +331,18 @@ export function JobForm({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label htmlFor="start_date">Start Date/Time *</Label>
-            <Input
-              id="start_date"
-              type="datetime-local"
-              {...register("start_date")}
-              aria-invalid={!!errors.start_date}
+            <Controller
+              name="start_date"
+              control={control}
+              render={({ field }) => (
+                <DateTimePicker
+                  id="start_date"
+                  value={typeof field.value === "string" ? field.value : ""}
+                  onChange={field.onChange}
+                  placeholder="Pick start date & time"
+                  ariaInvalid={!!errors.start_date}
+                />
+              )}
             />
             {errors.start_date && (
               <p className="text-xs text-destructive">{errors.start_date.message}</p>
@@ -342,7 +350,18 @@ export function JobForm({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="end_date">End Date/Time</Label>
-            <Input id="end_date" type="datetime-local" {...register("end_date")} />
+            <Controller
+              name="end_date"
+              control={control}
+              render={({ field }) => (
+                <DateTimePicker
+                  id="end_date"
+                  value={typeof field.value === "string" ? field.value : ""}
+                  onChange={field.onChange}
+                  placeholder="Pick end date & time"
+                />
+              )}
+            />
           </div>
           {isEdit && (
           <div className="space-y-1.5">
