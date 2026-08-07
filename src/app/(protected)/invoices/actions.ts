@@ -59,7 +59,7 @@ export async function generateAndEmailInvoice(
     .select("company_name, tagline, primary_color, logo_url, address, city, postcode, email, phone, vat_number, bank_account_name, bank_sort_code, bank_account_number, terms_and_conditions, invoice_mode")
     .limit(1)
     .maybeSingle();
-  const invoiceMode: string = settings?.invoice_mode ?? "company_direct";
+  const invoiceMode: string = settings?.invoice_mode ?? "white_label";
 
   let contractor = null;
   if (job.assigned_contractor_id) {
@@ -198,7 +198,7 @@ export async function downloadInvoicePdf(
     .select("company_name, tagline, primary_color, logo_url, address, city, postcode, email, phone, vat_number, bank_account_name, bank_sort_code, bank_account_number, terms_and_conditions, invoice_mode")
     .limit(1)
     .maybeSingle();
-  const invoiceMode: string = settings?.invoice_mode ?? "company_direct";
+  const invoiceMode: string = settings?.invoice_mode ?? "white_label";
 
   let contractor = null;
   if (inv.assigned_contractor_id) {
@@ -372,6 +372,118 @@ export async function createInvoiceFromQuote(quoteId: string): Promise<{ error: 
 
   revalidatePath("/invoices");
   redirect(`/invoices/${data.id}/edit`);
+}
+
+// §10 — 50% deposit invoice raised from an ACCEPTED QUOTE (before the job is
+// booked). Bills 50% of the quote total as a single line, no VAT, company
+// branding (no contractor assigned yet), emails a real PDF, and dedupes by
+// quote + deposit so it can't be double-issued.
+export async function sendDepositInvoiceFromQuote(
+  quoteId: string,
+): Promise<{ error: string } | void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data: quote } = await supabase
+    .from("quotes")
+    .select("id, customer_id, customer_name, customer_email, customer_address, total")
+    .eq("id", quoteId)
+    .single<{
+      id: string; customer_id: string | null; customer_name: string | null;
+      customer_email: string | null; customer_address: string | null; total: number | null;
+    }>();
+  if (!quote) return { error: "Quote not found" };
+
+  // BILL TO from the customer — never the staff member.
+  let billName = quote.customer_name ?? "";
+  let billEmail = quote.customer_email ?? null;
+  let billAddress = quote.customer_address ?? null;
+  if (quote.customer_id) {
+    const { data: cust } = await supabase
+      .from("customers").select("name, email, address").eq("id", quote.customer_id)
+      .maybeSingle<{ name: string | null; email: string | null; address: string | null }>();
+    if (cust) {
+      billName = cust.name ?? billName;
+      billEmail = cust.email ?? billEmail;
+      billAddress = cust.address ?? billAddress;
+    }
+  }
+  if (!billName.trim()) return { error: "This quote has no customer to bill." };
+
+  const value = Number(quote.total ?? 0);
+  const depositAmount = Math.round(value * 0.5 * 100) / 100;
+  if (!(depositAmount > 0)) return { error: "This quote has no value to take a deposit on." };
+  const items = [{ service_name: "50% Booking Fee / Deposit", quantity: 1, unit_price: depositAmount, total: depositAmount }];
+
+  const { data: settings } = await supabase
+    .from("company_settings")
+    .select("company_name, tagline, primary_color, logo_url, address, city, postcode, email, phone, vat_number, bank_account_name, bank_sort_code, bank_account_number, terms_and_conditions, invoice_mode")
+    .limit(1)
+    .maybeSingle();
+
+  const row = {
+    quote_id: quote.id,
+    customer_id: quote.customer_id ?? null,
+    customer_name: billName,
+    customer_email: billEmail,
+    customer_address: billAddress,
+    invoice_type: "deposit" as const,
+    deposit_percent: 50,
+    items,
+    subtotal: depositAmount,
+    vat_rate: 0,
+    vat_amount: 0,
+    total: depositAmount,
+    status: "sent" as const,
+    sent_date: new Date().toISOString(),
+    created_by_id: user.id,
+  };
+
+  // Dedupe by (quote_id, deposit): update in place if already issued.
+  const { data: existing } = await supabase
+    .from("invoices").select("id").eq("quote_id", quote.id).eq("invoice_type", "deposit").maybeSingle<{ id: string }>();
+
+  let invoiceNumber: string;
+  if (existing) {
+    const { data, error } = await supabase
+      .from("invoices").update(row).eq("id", existing.id).select("invoice_number").single();
+    if (error) return { error: error.message };
+    invoiceNumber = data.invoice_number;
+  } else {
+    const { data, error } = await supabase
+      .from("invoices").insert(row).select("invoice_number").single();
+    if (error) return { error: error.message };
+    invoiceNumber = data.invoice_number;
+  }
+
+  // Company-branded deposit PDF (no contractor at quote stage).
+  const branding = buildInvoiceBranding({ invoiceMode: settings?.invoice_mode ?? "white_label", contractor: null, company: settings ?? null });
+  const pdfBase64 = generateInvoicePdfBase64(
+    {
+      invoice_number: invoiceNumber, invoice_type: "deposit", created_date: new Date().toISOString(),
+      due_date: null, customer_name: billName, customer_email: billEmail, customer_address: billAddress,
+      items, subtotal: depositAmount, discount_amount: 0, vat_rate: 0, vat_amount: 0, total: depositAmount, amount_paid: 0, notes: null,
+    },
+    branding,
+  );
+
+  if (billEmail) {
+    const emailBranding = await getBranding(supabase);
+    await sendEmail({
+      to: billEmail,
+      from: emailBranding.from,
+      subject: `Deposit Invoice ${invoiceNumber} from ${branding.name}`,
+      html: invoiceEmailHtml(
+        { invoice_number: invoiceNumber, customer_name: billName, customer_address: billAddress, due_date: null, items, subtotal: depositAmount, vat_rate: 0, vat_amount: 0, total: depositAmount, amount_paid: 0 },
+        emailBranding,
+      ),
+      attachments: [{ filename: `deposit-${invoiceNumber}.pdf`, content: pdfBase64 }],
+    });
+  }
+
+  revalidatePath(`/quotes/${quoteId}`);
+  revalidatePath("/invoices");
 }
 
 export async function recordPayment(

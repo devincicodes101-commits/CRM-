@@ -11,7 +11,7 @@ export default async function InvoicingSettingsPage() {
     .limit(1)
     .maybeSingle<{ invoice_mode: string | null }>();
 
-  const initial = data?.invoice_mode === "white_label" ? "white_label" : "company_direct";
+  const initial = data?.invoice_mode === "company_direct" ? "company_direct" : "white_label";
 
   return (
     <div className="space-y-6 max-w-2xl">

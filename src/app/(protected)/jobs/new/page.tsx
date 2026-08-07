@@ -5,7 +5,12 @@ import { JobForm } from "@/components/jobs/job-form";
 import type { Customer } from "@/lib/schemas/customers";
 import type { Quote } from "@/lib/schemas/quotes";
 
-export default async function NewJobPage() {
+export default async function NewJobPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ quote?: string }>;
+}) {
+  const { quote: quoteId } = await searchParams;
   const supabase = await createClient();
 
   const [
@@ -47,6 +52,33 @@ export default async function NewJobPage() {
       .returns<{ id: string; contact_name: string; company_name: string | null }[]>(),
   ]);
 
+  // Prefill from an accepted quote when arriving via "Book Job in Diary".
+  let prefillQuote = undefined;
+  if (quoteId) {
+    const { data: q } = await supabase
+      .from("quotes")
+      .select("id, customer_id, customer_name, customer_email, customer_address, items, total")
+      .eq("id", quoteId)
+      .maybeSingle<{
+        id: string; customer_id: string | null; customer_name: string | null;
+        customer_email: string | null; customer_address: string | null;
+        items: { service_name: string }[] | null; total: number | null;
+      }>();
+    if (q) {
+      const first = q.items?.[0]?.service_name || "Work";
+      prefillQuote = {
+        id: q.id,
+        customer_id: q.customer_id,
+        customer_name: q.customer_name,
+        customer_email: q.customer_email,
+        customer_address: q.customer_address,
+        total: q.total,
+        title: `${first} — ${q.customer_name ?? "Customer"}`,
+        description: (q.items ?? []).map((i) => i.service_name).join(", "),
+      };
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div>
@@ -65,6 +97,7 @@ export default async function NewJobPage() {
         vehicles={vehicles ?? []}
         operatives={operatives ?? []}
         contractors={contractors ?? []}
+        prefillQuote={prefillQuote}
       />
     </div>
   );

@@ -38,10 +38,24 @@ export function ContractorForm({ contractor }: Props) {
         bank_sort_code: "",
         bank_account_number: "",
         registration_completed: false,
+        licence_type: "non_licenced",
+        coverage_mode: "national",
+        base_postcode: "",
+        coverage_radius_miles: null,
+        coverage_postcodes: [],
       },
     });
 
   const vatRegistered = watch("vat_registered");
+  const licenceType = watch("licence_type");
+  const coverageMode = watch("coverage_mode");
+  const coveragePostcodes = watch("coverage_postcodes");
+
+  const COVERAGE_MODES = [
+    { value: "radius", label: "Radius" },
+    { value: "postcodes", label: "Postcode districts" },
+    { value: "national", label: "National" },
+  ] as const;
 
   function onSubmit(values: FormValues) {
     startTransition(async () => {
@@ -100,6 +114,86 @@ export function ContractorForm({ contractor }: Props) {
             <Input id="address_postcode" {...register("address_postcode")} />
           </div>
         </div>
+      </div>
+
+      {/* Coverage & Licence */}
+      <div className="rounded-xl border bg-card p-4 space-y-4">
+        <h2 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">Coverage & Licence</h2>
+
+        {/* Licence type */}
+        <div className="flex items-center gap-3">
+          <Switch
+            id="licence_type"
+            checked={licenceType === "licenced"}
+            onCheckedChange={(v) => setValue("licence_type", v ? "licenced" : "non_licenced")}
+          />
+          <Label htmlFor="licence_type">Licenced contractor (can take AIB / licenced-work jobs)</Label>
+        </div>
+
+        {/* Coverage mode toggle */}
+        <div className="space-y-1.5">
+          <Label>Coverage Area</Label>
+          <div className="flex flex-wrap gap-2">
+            {COVERAGE_MODES.map((m) => (
+              <Button
+                key={m.value}
+                type="button"
+                size="sm"
+                variant={coverageMode === m.value ? "default" : "outline"}
+                onClick={() => setValue("coverage_mode", m.value)}
+              >
+                {m.label}
+              </Button>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            How jobs are matched to this contractor. National = eligible for every job.
+          </p>
+        </div>
+
+        {coverageMode === "radius" && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="base_postcode">Base postcode</Label>
+              <Input id="base_postcode" placeholder="e.g. LS1 4DY" {...register("base_postcode")} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="coverage_radius_miles">Radius (miles)</Label>
+              <Input
+                id="coverage_radius_miles"
+                type="number"
+                min="1"
+                placeholder="e.g. 25"
+                {...register("coverage_radius_miles", {
+                  setValueAs: (v) => (v === "" || v == null ? null : Number(v)),
+                })}
+              />
+            </div>
+          </div>
+        )}
+
+        {coverageMode === "postcodes" && (
+          <div className="space-y-1.5">
+            <Label htmlFor="coverage_postcodes">Postcode districts</Label>
+            <Input
+              id="coverage_postcodes"
+              placeholder="e.g. LS1, LS2, BD, WF"
+              value={(coveragePostcodes ?? []).join(", ")}
+              onChange={(e) =>
+                setValue(
+                  "coverage_postcodes",
+                  e.target.value
+                    .split(",")
+                    .map((s) => s.trim().toUpperCase())
+                    .filter(Boolean),
+                )
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              Comma-separated outward codes / districts (matched against the job postcode).
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Bank */}

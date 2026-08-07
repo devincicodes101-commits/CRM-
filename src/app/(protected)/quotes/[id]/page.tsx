@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Pencil, Send, CheckCircle, XCircle, Receipt } from "lucide-react";
+import { ChevronLeft, Pencil, Send, CheckCircle, XCircle, Receipt, PoundSterling, CalendarPlus } from "lucide-react";
 import { EmailUndeliverableWarning } from "@/components/shared/email-undeliverable-warning";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -16,7 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { sendQuote, updateQuoteStatus } from "@/app/(protected)/quotes/actions";
-import { createInvoiceFromQuote } from "@/app/(protected)/invoices/actions";
+import { createInvoiceFromQuote, sendDepositInvoiceFromQuote } from "@/app/(protected)/invoices/actions";
 import { CopyLinkButton } from "@/components/shared/copy-link-button";
 import type { Quote } from "@/lib/schemas/quotes";
 
@@ -112,9 +112,24 @@ export default async function QuoteDetailPage({
             />
           )}
           {quote.status === "accepted" && (
-            <AsyncButton action={createInvoiceFromQuote.bind(null, id)} size="sm">
-              <Receipt className="size-4" /> Convert to Invoice
-            </AsyncButton>
+            <>
+              <Link
+                href={`/jobs/new?quote=${id}`}
+                className={cn(buttonVariants({ size: "sm" }))}
+              >
+                <CalendarPlus className="size-4" /> Book Job in Diary
+              </Link>
+              <AsyncButton
+                action={sendDepositInvoiceFromQuote.bind(null, id)}
+                variant="secondary"
+                size="sm"
+              >
+                <PoundSterling className="size-4" /> 50% Deposit
+              </AsyncButton>
+              <AsyncButton action={createInvoiceFromQuote.bind(null, id)} variant="outline" size="sm">
+                <Receipt className="size-4" /> Convert to Invoice
+              </AsyncButton>
+            </>
           )}
           <Link
             href={`/quotes/${id}/edit`}

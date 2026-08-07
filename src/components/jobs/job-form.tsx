@@ -33,6 +33,17 @@ type VehicleOption = { id: string; name: string; registration: string };
 type OperativeOption = { id: string; full_name: string; role: string };
 type ContractorOption = { id: string; contact_name: string; company_name: string | null };
 
+type PrefillQuote = {
+  id: string;
+  customer_id: string | null;
+  customer_name: string | null;
+  customer_email: string | null;
+  customer_address: string | null;
+  total: number | null;
+  title: string | null;
+  description: string | null;
+};
+
 type Props = {
   job?: Job;
   customers: Customer[];
@@ -41,6 +52,7 @@ type Props = {
   vehicles?: VehicleOption[];
   operatives?: OperativeOption[];
   contractors?: ContractorOption[];
+  prefillQuote?: PrefillQuote;
 };
 
 const STATUS_OPTIONS = [
@@ -73,6 +85,7 @@ export function JobForm({
   vehicles = [],
   operatives = [],
   contractors = [],
+  prefillQuote,
 }: Props) {
   const [pending, startTransition] = useTransition();
   const isEdit = !!job;
@@ -99,15 +112,17 @@ export function JobForm({
             end_date: toDatetimeLocal(job.end_date),
           }
         : {
-            title: "",
-            customer_name: "",
-            customer_email: "",
-            address: "",
-            description: "",
+            title: prefillQuote?.title ?? "",
+            customer_id: prefillQuote?.customer_id ?? null,
+            customer_name: prefillQuote?.customer_name ?? "",
+            customer_email: prefillQuote?.customer_email ?? "",
+            quote_id: prefillQuote?.id ?? null,
+            address: prefillQuote?.customer_address ?? "",
+            description: prefillQuote?.description ?? "",
             start_date: "",
             status: "scheduled",
             priority: "medium",
-            total_value: 0,
+            total_value: prefillQuote?.total ?? 0,
             requires_licence: false,
             color: "#f97316",
             notes: "",

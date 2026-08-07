@@ -34,9 +34,15 @@ export async function createContractorCommissionInvoice(
     // Agency settings — fee %, VAT status and branding.
     const { data: settings } = await supabase
       .from("company_settings")
-      .select("agency_name, agency_logo_url, agency_address, agency_vat_number, agency_email, agency_bank_name, agency_account_name, agency_iban, agency_swift_bic, agency_fee_percent, primary_color")
+      .select("agency_name, agency_logo_url, agency_address, agency_vat_number, agency_email, agency_bank_name, agency_account_name, agency_iban, agency_swift_bic, agency_fee_percent, primary_color, invoice_mode")
       .limit(1)
       .maybeSingle();
+
+    // §9 guard (defense-in-depth): never raise the agency commission invoice
+    // under company-direct invoicing, even if a caller forgets to check.
+    if ((settings?.invoice_mode ?? "white_label") === "company_direct") {
+      return { skipped: "company_direct" };
+    }
 
     const feePercent = Number(job.agency_fee_percent ?? settings?.agency_fee_percent ?? DEFAULT_AGENCY_FEE);
     // Base44 sendAgencyFeeInvoice: when the job carries a contractor_pay_amount
