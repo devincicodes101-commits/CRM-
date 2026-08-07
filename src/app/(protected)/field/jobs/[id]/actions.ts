@@ -4,6 +4,45 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { uploadFile } from "@/lib/storage";
 
+// §12 — field operative uploads an expense receipt (photo + amount) for approval.
+export async function uploadReceipt(
+  jobId: string,
+  formData: FormData,
+): Promise<{ error: string } | { ok: true }> {
+  const file = formData.get("photo");
+  if (!(file instanceof File) || file.size === 0) return { error: "Add a photo of the receipt" };
+  if (!file.type.startsWith("image/")) return { error: "Please upload an image" };
+  if (file.size > 10 * 1024 * 1024) return { error: "Image must be under 10MB" };
+  const amount = Number(formData.get("amount") ?? 0);
+  const description = String(formData.get("description") ?? "").trim();
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+  const { data: me } = await supabase.from("users").select("full_name").eq("id", user.id).maybeSingle<{ full_name: string | null }>();
+
+  const ext = file.name.split(".").pop() || "jpg";
+  const path = `receipts/${jobId}/${Date.now()}.${ext}`;
+  const buf = Buffer.from(await file.arrayBuffer());
+  const up = await uploadFile("job-photos", path, buf, file.type);
+  if (!up.ok) return { error: up.error };
+
+  const { error } = await supabase.from("receipts").insert({
+    job_id: jobId,
+    operative_name: me?.full_name ?? user.email ?? "Operative",
+    photo_url: up.publicUrl,
+    amount_gbp: amount > 0 ? amount : null,
+    item_description: description || null,
+    purchase_date: new Date().toISOString(),
+    status: "pending",
+    created_by_id: user.id,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath(`/field/jobs/${jobId}`);
+  return { ok: true };
+}
+
 // Field operative / contractor requests extra work beyond the original scope.
 export async function createExtraWorkRequest(
   jobId: string,

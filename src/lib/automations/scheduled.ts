@@ -378,6 +378,123 @@ export async function processMonthlyCommissions(): Promise<AutomationResult> {
   return { ok: true, detail: `monthly bonuses: ${created} created` };
 }
 
+// ── §15 field/ops digests & engagement ──────────────────────────────────────
+async function officeEmail(supabase: SupabaseClient): Promise<string | null> {
+  const { data } = await supabase.from("company_settings").select("email").limit(1).maybeSingle<{ email: string | null }>();
+  return data?.email ?? null;
+}
+async function staffEmails(supabase: SupabaseClient): Promise<{ email: string; full_name: string | null }[]> {
+  const { data } = await supabase
+    .from("users").select("email, full_name")
+    .in("role", ["admin", "user", "sales", "telesales", "operative"]).not("email", "is", null);
+  return (data ?? []).filter((u) => u.email) as { email: string; full_name: string | null }[];
+}
+
+// Heads-up digest: quotes that went out ~1 day ago and haven't been answered.
+export async function quoteFollowupReminder1Day(): Promise<AutomationResult> {
+  const supabase = await createServiceClient();
+  const to = await officeEmail(supabase);
+  if (!to) return { ok: true, detail: "no office email" };
+  const { data } = await supabase
+    .from("quotes").select("quote_number, customer_name, total")
+    .eq("status", "sent").gte("sent_date", daysAgoISO(2)).lte("sent_date", daysAgoISO(1));
+  if (!data?.length) return { ok: true, detail: "none due" };
+  const rows = data.map((q) => `<li>${q.quote_number} — ${q.customer_name ?? ""} (${money(q.total)})</li>`).join("");
+  const res = await sendEmail({ to, subject: `${data.length} quote(s) awaiting a response`,
+    html: brandedEmail({ heading: "Quotes to follow up", body: `<p>These went out yesterday and are still unanswered — worth a call:</p><ul>${rows}</ul>` }) });
+  return { ok: true, detail: `quote follow-up: ${data.length}` };
+}
+
+// Weekly digest of open high-value commercial quotes.
+export async function highValueCommercialReminder(): Promise<AutomationResult> {
+  const supabase = await createServiceClient();
+  const to = await officeEmail(supabase);
+  if (!to) return { ok: true, detail: "no office email" };
+  const { data } = await supabase
+    .from("quotes").select("quote_number, customer_name, total, client_type")
+    .eq("status", "sent").gte("total", 3000);
+  const list = (data ?? []).filter((q) => q.client_type === "commercial");
+  if (!list.length) return { ok: true, detail: "none" };
+  const rows = list.map((q) => `<li>${q.quote_number} — ${q.customer_name ?? ""} (${money(q.total)})</li>`).join("");
+  const res = await sendEmail({ to, subject: `${list.length} high-value commercial quote(s) still open`,
+    html: brandedEmail({ heading: "High-value commercial pipeline", body: `<p>These £3,000+ commercial quotes are still awaiting a decision:</p><ul>${rows}</ul>` }) });
+  return { ok: true, detail: `high-value: ${list.length}` };
+}
+
+async function operativeSummary(dayOffset: number, label: string): Promise<AutomationResult> {
+  const supabase = await createServiceClient();
+  const target = new Date(); target.setDate(target.getDate() + dayOffset);
+  const dayStr = target.toISOString().slice(0, 10);
+  const { data: ops } = await supabase.from("users").select("full_name, email").eq("role", "operative").not("email", "is", null);
+  const { data: jobs } = await supabase
+    .from("jobs").select("title, address, start_date, assigned_team, status")
+    .gte("start_date", `${dayStr}T00:00:00`).lte("start_date", `${dayStr}T23:59:59`)
+    .not("status", "in", '("cancelled","completed")');
+  let sent = 0;
+  for (const op of ops ?? []) {
+    const mine = (jobs ?? []).filter((j) => j.assigned_team === op.full_name);
+    if (!mine.length || !op.email) continue;
+    const rows = mine.map((j) => `<li><strong>${j.title}</strong>${j.address ? ` — ${j.address}` : ""}</li>`).join("");
+    const res = await sendEmail({ to: op.email, subject: `Your jobs for ${label}`,
+      html: brandedEmail({ heading: `Your schedule — ${label}`, body: `<p>Hi ${op.full_name ?? "there"}, here's what's on:</p><ul>${rows}</ul>` }) });
+    if (res.ok) sent++;
+  }
+  return { ok: true, detail: `operative summary (${label}): ${sent} sent` };
+}
+export const sendOperativeJobSummaryAM = () => operativeSummary(0, "today");
+export const sendOperativeJobSummaryPM = () => operativeSummary(1, "tomorrow");
+
+// Chase digest for jobs invoiced 3+ days ago that still aren't paid.
+export async function sendInvoicedJobReminder(): Promise<AutomationResult> {
+  const supabase = await createServiceClient();
+  const to = await officeEmail(supabase);
+  if (!to) return { ok: true, detail: "no office email" };
+  const { data } = await supabase
+    .from("jobs").select("title, customer_name, total_value, updated_date")
+    .eq("status", "invoiced").lte("updated_date", daysAgoISO(3));
+  if (!data?.length) return { ok: true, detail: "none" };
+  const rows = data.map((j) => `<li>${j.title} — ${j.customer_name ?? ""} (${money(j.total_value)})</li>`).join("");
+  const res = await sendEmail({ to, subject: `${data.length} invoiced job(s) awaiting payment`,
+    html: brandedEmail({ heading: "Invoiced but unpaid", body: `<p>These jobs were invoiced 3+ days ago and haven't been marked paid:</p><ul>${rows}</ul>` }) });
+  return { ok: true, detail: `invoiced reminder: ${data.length}` };
+}
+
+const MOTIVATION = [
+  "Great work starts before the first cup of coffee — let's make today count.",
+  "Every job done well is another happy customer and another referral.",
+  "Small wins stack up. Keep the momentum going.",
+  "Safety first, quality always — you've got this.",
+  "The best teams show up for each other. Thanks for being one of them.",
+];
+export async function sendMotivationalQuote(): Promise<AutomationResult> {
+  const supabase = await createServiceClient();
+  const staff = await staffEmails(supabase);
+  if (!staff.length) return { ok: true, detail: "no staff" };
+  const line = MOTIVATION[new Date().getDate() % MOTIVATION.length];
+  let sent = 0;
+  for (const u of staff) {
+    const res = await sendEmail({ to: u.email, subject: "A little Monday motivation ☀️",
+      html: brandedEmail({ heading: "Good morning!", body: `<p>${line}</p>` }) });
+    if (res.ok) sent++;
+  }
+  return { ok: true, detail: `motivation: ${sent} sent` };
+}
+
+// Friday: let staff know the spin wheel is live.
+export async function sendFridaySpinNotification(): Promise<AutomationResult> {
+  const supabase = await createServiceClient();
+  const staff = await staffEmails(supabase);
+  if (!staff.length) return { ok: true, detail: "no staff" };
+  let sent = 0;
+  for (const u of staff) {
+    const res = await sendEmail({ to: u.email, subject: "🎡 Friday Spin is live!",
+      html: brandedEmail({ heading: "It's spin day!", body: `<p>Hi ${u.full_name ?? "there"} — the Friday prize wheel is open. Give it a spin and see what you win.</p>`,
+        cta: { label: "Spin the wheel", url: `${APP_BASE}/spin-wheel` } }) });
+    if (res.ok) sent++;
+  }
+  return { ok: true, detail: `friday spin: ${sent} sent` };
+}
+
 // New-lead nurture sequence — sends each configured step once its delay elapses.
 export async function newLeadSequenceRunner(): Promise<AutomationResult> {
   const supabase = await createServiceClient();

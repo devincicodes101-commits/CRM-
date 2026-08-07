@@ -62,11 +62,16 @@ export default async function FieldPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">{greeting}</h1>
-        <p className="text-sm text-muted-foreground">
-          {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">{greeting}</h1>
+          <p className="text-sm text-muted-foreground">
+            {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
+          </p>
+        </div>
+        <Link href="/field/spin" className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/5 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/10">
+          🎡 Spin
+        </Link>
       </div>
 
       {/* Today's jobs */}

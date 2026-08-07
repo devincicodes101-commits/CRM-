@@ -8,6 +8,7 @@ import { ChecklistPanel } from "@/components/field/checklist-panel";
 import { MaterialsLogger } from "@/components/field/materials-logger";
 import { JobCompletionForm } from "@/components/field/job-completion-form";
 import { FieldPhotoUpload } from "@/components/field/photo-upload";
+import { ReceiptUpload } from "@/components/field/receipt-upload";
 import { ExtraWorkForm } from "@/components/field/extra-work-form";
 import { FieldAuctionPanel } from "@/components/field/auction-panel";
 import { AUCTION } from "@/lib/auction";
@@ -217,6 +218,12 @@ export default async function FieldJobPage({
           photos={(job.client_photos ?? []) as { url: string; caption?: string }[]}
           disabled={isComplete}
         />
+      </div>
+
+      {/* Expense receipts */}
+      <div className="rounded-xl border bg-card p-4 space-y-3">
+        <h2 className="font-semibold text-sm">Expense Receipt</h2>
+        <ReceiptUpload jobId={job.id} />
       </div>
 
       {/* Materials */}
