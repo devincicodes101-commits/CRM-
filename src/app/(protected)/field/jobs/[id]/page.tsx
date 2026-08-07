@@ -263,7 +263,7 @@ export default async function FieldJobPage({
       {isActive && checkedIn && !isComplete && (
         <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
           <h2 className="font-semibold text-sm">Complete Job</h2>
-          <JobCompletionForm jobId={job.id} />
+          <JobCompletionForm jobId={job.id} checklist={(job.checklist ?? []) as { label: string; checked: boolean }[]} />
         </div>
       )}
 

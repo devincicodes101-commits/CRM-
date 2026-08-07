@@ -415,6 +415,22 @@ export function QuoteBuilder({ quote, customers, services, templates = [] }: Pro
         </div>
       </div>
 
+      {/* Follow-up reminder (internal — call the customer back if no response) */}
+      <div className="rounded-xl border-l-4 border-l-amber-400 border bg-card p-4 space-y-3">
+        <h2 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">Follow-up Reminder</h2>
+        <p className="text-xs text-muted-foreground -mt-1">Internal only — set a date to chase the customer if they don&apos;t respond.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="reminder_date">Call-back date</Label>
+            <Input id="reminder_date" type="date" {...register("reminder_date")} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="reminder_note">Note for the rep</Label>
+            <Input id="reminder_note" {...register("reminder_note")} placeholder="e.g. Interested but checking budget" />
+          </div>
+        </div>
+      </div>
+
       <div className="flex gap-3">
         <Button type="submit" disabled={pending}>
           {pending ? "Saving…" : isEdit ? "Update Quote" : "Create Quote"}

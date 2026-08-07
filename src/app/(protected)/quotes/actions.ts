@@ -17,9 +17,16 @@ export async function createQuote(values: unknown): Promise<{ error: string } | 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
+  // Record which rep created the quote (unless already stamped, e.g. the AI agent).
+  const { data: me } = await supabase.from("users").select("full_name").eq("id", user.id).maybeSingle<{ full_name: string | null }>();
   const { data, error } = await supabase
     .from("quotes")
-    .insert({ ...parsed.data, created_by_id: user.id })
+    .insert({
+      ...parsed.data,
+      created_by_id: user.id,
+      sales_agent_id: parsed.data.sales_agent_id ?? user.id,
+      sales_agent_name: parsed.data.sales_agent_name ?? me?.full_name ?? user.email ?? null,
+    })
     .select("id")
     .single();
   if (error) return { error: error.message };

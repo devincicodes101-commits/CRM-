@@ -36,7 +36,7 @@ export const quoteInsertSchema = z.object({
   discount_email_sent: z.boolean().default(false),
   followup_day7_sent: z.boolean().default(false),
   followup_day14_sent: z.boolean().default(false),
-  reminder_date: z.string().datetime().nullable().optional(),
+  reminder_date: z.string().nullable().optional(),
   reminder_time: z.string().nullable().optional(),
   reminder_note: z.string().nullable().optional(),
   reminder_done: z.boolean().default(false),
